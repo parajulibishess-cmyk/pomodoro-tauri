@@ -1,8 +1,9 @@
 import { settingsStore } from '../store/SettingsStore';
 
-const timerAudio = typeof Audio !== "undefined" ? new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3") : null;
-
 export type TimerMode = 'focus' | 'short' | 'long';
+export type TimerAction = 'extend' | 'break';
+
+const timerAudio = typeof Audio !== "undefined" ? new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3") : null;
 
 export class TimerLogic {
   public mode: TimerMode = 'focus';
@@ -13,33 +14,30 @@ export class TimerLogic {
   
   private endTime: number | null = null;
   private intervalId: number | null = null;
-  
-  // Callbacks
   private onComplete: (mode: TimerMode, isFocusSession: boolean) => void;
-  private onTick?: (timeLeft: number, progress: number) => void;
 
-  constructor(
-    onComplete: (mode: TimerMode, isFocusSession: boolean) => void,
-    onTick?: (timeLeft: number, progress: number) => void
-  ) {
+  // Callback to update the vanilla DOM when the timer ticks
+  private onTickCallback?: (timeLeft: number, isActive: boolean) => void;
+
+  constructor(onComplete: (mode: TimerMode, isFocusSession: boolean) => void) {
     this.onComplete = onComplete;
-    this.onTick = onTick;
-    this.syncWithSettings();
+    this.init();
   }
 
-  // Set the UI update callback (useful for attaching vanilla DOM elements later)
-  public setOnTick(onTick: (timeLeft: number, progress: number) => void) {
-    this.onTick = onTick;
+  private init() {
+    const settings = settingsStore.getState();
+    this.initialDuration = settings.durations.focus * 60;
+    this.timeLeft = this.initialDuration;
   }
 
-  // Syncs initial time with current settings if the timer isn't running
-  public syncWithSettings() {
-    if (!this.isActive && !this.isIntermission) {
-      const settings = settingsStore.getState();
-      const dur = settings.durations[this.mode] * 60;
-      this.timeLeft = dur;
-      this.initialDuration = dur;
-      this.notifyTick();
+  // Subscribe UI to tick events
+  public onTick(cb: (timeLeft: number, isActive: boolean) => void) {
+    this.onTickCallback = cb;
+  }
+
+  private notifyTick() {
+    if (this.onTickCallback) {
+      this.onTickCallback(this.timeLeft, this.isActive);
     }
   }
 
@@ -47,35 +45,41 @@ export class TimerLogic {
     this.isIntermission = false;
     this.endTime = Date.now() + this.timeLeft * 1000;
     this.isActive = true;
-    this.startLoop();
+    this.runInterval();
   }
 
   public pauseTimer() {
     this.isActive = false;
     this.endTime = null;
-    this.stopLoop();
-  }
-
-  public setMode(newMode: TimerMode) {
-    this.mode = newMode;
-    this.syncWithSettings();
+    this.clearInterval();
+    this.notifyTick();
   }
 
   public startSession(newMode: TimerMode) {
     const settings = settingsStore.getState();
     this.mode = newMode;
     const dur = settings.durations[newMode] * 60;
-    
     this.timeLeft = dur;
     this.initialDuration = dur;
     this.endTime = Date.now() + dur * 1000;
     this.isActive = true;
     this.isIntermission = false;
-    
-    this.startLoop();
+    this.runInterval();
   }
 
-  public finishIntermission(action: 'extend' | 'break', nextMode: TimerMode = 'short') {
+  public setMode(newMode: TimerMode) {
+    const settings = settingsStore.getState();
+    this.mode = newMode;
+    const dur = settings.durations[newMode] * 60;
+    this.timeLeft = dur;
+    this.initialDuration = dur;
+    this.isActive = false;
+    this.endTime = null;
+    this.clearInterval();
+    this.notifyTick();
+  }
+
+  public finishIntermission(action: TimerAction, nextMode: TimerMode = 'short') {
     const settings = settingsStore.getState();
     this.isIntermission = false;
 
@@ -85,7 +89,7 @@ export class TimerLogic {
       this.initialDuration = extra;
       this.endTime = Date.now() + extra * 1000;
       this.isActive = true;
-      this.startLoop();
+      this.runInterval();
     } else if (action === 'break') {
       this.mode = nextMode;
       const dur = settings.durations[nextMode] * 60;
@@ -95,8 +99,9 @@ export class TimerLogic {
       if (settings.autoStartBreaks) {
         this.endTime = Date.now() + dur * 1000;
         this.isActive = true;
-        this.startLoop();
+        this.runInterval();
       } else {
+        this.isActive = false;
         this.notifyTick();
       }
     }
@@ -107,8 +112,10 @@ export class TimerLogic {
     return ((this.initialDuration - this.timeLeft) / this.initialDuration) * 100;
   }
 
-  private startLoop() {
-    this.stopLoop(); // Ensure no overlapping intervals
+  private runInterval() {
+    this.clearInterval();
+    this.notifyTick(); // initial tick update
+    
     this.intervalId = window.setInterval(() => {
       if (!this.isActive || !this.endTime) return;
 
@@ -119,33 +126,28 @@ export class TimerLogic {
         this.timeLeft = 0;
         this.isActive = false;
         this.endTime = null;
-        this.stopLoop();
+        this.clearInterval();
         this.notifyTick();
         this.handleCompletion();
-      } else if (this.timeLeft !== diff) {
-        this.timeLeft = diff;
-        this.notifyTick();
+      } else {
+        // Optimization: Only notify UI if the exact second changed
+        if (this.timeLeft !== diff) {
+          this.timeLeft = diff;
+          this.notifyTick();
+        }
       }
-    }, 200); // 200ms for high-accuracy checks without heavy CPU load
+    }, 200);
   }
 
-  private stopLoop() {
+  private clearInterval() {
     if (this.intervalId !== null) {
-      clearInterval(this.intervalId);
+      window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
   }
 
   private handleCompletion() {
-    if (timerAudio) {
-        timerAudio.play().catch(e => console.error("Audio play failed:", e));
-    }
+    if (timerAudio) timerAudio.play().catch(e => console.error(e));
     this.onComplete(this.mode, this.mode === 'focus');
-  }
-
-  private notifyTick() {
-    if (this.onTick) {
-      this.onTick(this.timeLeft, this.calculateProgress());
-    }
   }
 }
