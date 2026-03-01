@@ -1,6 +1,6 @@
-import { timerState, subscribeTimer, MODES } from '../../store/timerStore';
-import { toggleTimer, setMode } from '../../utils/timerLogic';
-import { formatTime } from '../../utils/timeFormat';
+import { timerState, subscribeTimer, MODES } from '../../store/TimerStore';
+import { toggleTimer, setMode } from '../../utils/TimerLogic';
+import { formatTime } from '../../utils/TimeFormat';
 
 export function initTimerUI() {
   const timeDisplay = document.getElementById('time-display')!;
