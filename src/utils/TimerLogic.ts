@@ -1,29 +1,29 @@
-import { state, MODES, notify, Mode } from '../store/store';
+import { timerState, MODES, notifyTimer, Mode } from '../store/TimerStore';
 
 let timerId: number | null = null;
 
 function tick() {
-  if (state.timeLeft > 0) {
-    state.timeLeft--;
-    notify('timer'); // Tell the UI to update
+  if (timerState.timeLeft > 0) {
+    timerState.timeLeft--;
+    notifyTimer(); // Tell the UI to update
   } else {
     pauseTimer();
-    alert(`${state.currentMode.toUpperCase()} session complete!`);
+    alert(`${timerState.currentMode.toUpperCase()} session complete!`);
     // Future: Trigger Flow State Modal here
   }
 }
 
 export function startTimer() {
-  if (state.isRunning) return;
-  state.isRunning = true;
-  notify('timer');
+  if (timerState.isRunning) return;
+  timerState.isRunning = true;
+  notifyTimer();
   timerId = window.setInterval(tick, 1000);
 }
 
 export function pauseTimer() {
-  if (!state.isRunning) return;
-  state.isRunning = false;
-  notify('timer');
+  if (!timerState.isRunning) return;
+  timerState.isRunning = false;
+  notifyTimer();
   if (timerId !== null) {
     clearInterval(timerId);
     timerId = null;
@@ -31,13 +31,13 @@ export function pauseTimer() {
 }
 
 export function toggleTimer() {
-    if (state.isRunning) pauseTimer();
+    if (timerState.isRunning) pauseTimer();
     else startTimer();
 }
 
 export function setMode(mode: Mode) {
   pauseTimer();
-  state.currentMode = mode;
-  state.timeLeft = MODES[mode];
-  notify('timer');
+  timerState.currentMode = mode;
+  timerState.timeLeft = MODES[mode];
+  notifyTimer();
 }

@@ -1,4 +1,4 @@
-import { state, addTask, removeTask, subscribe } from '../store/store';
+import { taskState, addTask, removeTask, subscribeTasks } from '../../store/TaskStore';
 
 export function initTasksUI() {
   const taskForm = document.getElementById('task-form') as HTMLFormElement;
@@ -11,9 +11,9 @@ export function initTasksUI() {
 
   function render() {
     taskList.innerHTML = '';
-    taskCount.textContent = `${state.tasks.length} Tasks`;
+    taskCount.textContent = `${taskState.tasks.length} Tasks`;
 
-    state.tasks.forEach(task => {
+    taskState.tasks.forEach(task => {
       const li = document.createElement('li');
       li.style.display = 'flex';
       li.style.justifyContent = 'space-between';
@@ -58,7 +58,6 @@ export function initTasksUI() {
     const text = taskInput.value.trim();
     if (!text) return;
 
-    // We use crypto.randomUUID() for a quick unique ID natively in the browser
     addTask({
       id: crypto.randomUUID(), 
       text,
@@ -72,6 +71,6 @@ export function initTasksUI() {
   });
 
   // Subscribe to task updates
-  subscribe('tasks', render);
+  subscribeTasks(render);
   render();
 }
