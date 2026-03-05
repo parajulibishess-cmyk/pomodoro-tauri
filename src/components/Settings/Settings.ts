@@ -37,11 +37,25 @@ export function initSettings() {
   if (!ls.getItem('nook_bg_opacity')) ls.setItem('nook_bg_opacity', '0.4');
   if (!ls.getItem('nook_bg_presets')) ls.setItem('nook_bg_presets', JSON.stringify(DEFAULT_PRESETS));
 
-  // Inject Button into BODY
-  const settingsBtn = document.createElement('button');
-  settingsBtn.className = "fixed bottom-6 right-6 p-4 bg-[#fffaf0] rounded-full shadow-lg border-2 border-[#594a42]/20 hover:scale-105 transition-transform z-40";
-  settingsBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#594a42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
-  document.body.appendChild(settingsBtn);
+  // --- WALLPAPER RENDERER FIX ---
+  // A function to paint the chosen background onto the body
+  function applyBackground() {
+    const bgUrl = ls.getItem('nook_bg_url');
+    const bgOpacity = ls.getItem('nook_bg_opacity') || '0.4';
+    
+    const bgEl = document.getElementById('dynamic-bg');
+    const overlayEl = document.getElementById('dynamic-bg-overlay');
+    
+    if (bgEl && overlayEl) {
+      bgEl.style.backgroundImage = `url('${bgUrl}')`;
+      // Overlay dictates how faded the wallpaper gets
+      overlayEl.style.opacity = bgOpacity; 
+    }
+  }
+
+  // Trigger it on boot, and whenever settings change the background
+  applyBackground();
+  window.addEventListener('nook-bg-changed', applyBackground);
 
   // Modal Container
   const modalOverlay = document.createElement('div');
@@ -206,15 +220,18 @@ export function initSettings() {
     });
   }
 
-  // Modal Open/Close
-  settingsBtn.addEventListener('click', () => {
-    modalOverlay.classList.remove('hidden');
-    setTimeout(() => {
-      modalOverlay.classList.remove('opacity-0');
-      modalInner.classList.remove('scale-95');
-      modalInner.classList.add('scale-100');
-    }, 10);
-  });
+  // Modal Open/Close - Using the new button in the Top Navigation Bar
+  const settingsBtn = document.getElementById('top-settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      modalOverlay.classList.remove('hidden');
+      setTimeout(() => {
+        modalOverlay.classList.remove('opacity-0');
+        modalInner.classList.remove('scale-95');
+        modalInner.classList.add('scale-100');
+      }, 10);
+    });
+  }
 
   const closeBtn = document.getElementById('closeSettings');
   if (closeBtn) {
@@ -292,6 +309,7 @@ export function initSettings() {
     const updateOpacity = () => {
       lblOpacity.innerText = `${Math.round(parseFloat(slOpacity.value) * 100)}%`;
       ls.setItem('nook_bg_opacity', slOpacity.value);
+      applyBackground(); // Dynamically update body background overlay opacity when dragging
     };
     slOpacity.addEventListener('input', updateOpacity); updateOpacity();
   }
