@@ -1,175 +1,315 @@
-// Add addTask and removeTask to the imports
-import { taskState, subscribeTasks, addTask, removeTask } from '../../store/TaskStore';
-import { timerState, subscribeTimer } from '../../store/TimerStore'; 
+import { Task, TaskStore } from '../../store/TaskStore';
 
-let focusedTaskId: string | null = null;
-let isTimerActive = false;
+// SVGs for Vanilla JS
+const icons = {
+  Plus: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>`,
+  CheckSquare: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>`,
+  Flag: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>`,
+  CalendarDays: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`,
+  Target: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  Trash2: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+  AlertCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`
+};
 
-export function initTasksUI() {
-  const taskList = document.getElementById('task-list');
-  const taskContainer = document.getElementById('task-container');
-  const activeTaskPill = document.getElementById('active-task-pill');
-  const activeTaskName = document.getElementById('active-task-name');
+const categories = [
+  { name: "General", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`, color: "text-[#a4b0be]" },
+  { name: "Work", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`, color: "text-[#54a0ff]" },
+  { name: "Study", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`, color: "text-[#fdcb58]" },
+  { name: "Creative", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>`, color: "text-[#ff6b6b]" },
+  { name: "Reading", icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`, color: "text-[#78b159]" }
+];
 
-  // Input elements
-  const taskInput = document.getElementById('new-task-input') as HTMLInputElement;
-  const taskEstimate = document.getElementById('new-task-estimate') as HTMLInputElement;
-  const addBtn = document.getElementById('add-task-btn');
+export class TaskSectionUI {
+  store: TaskStore;
+  root: HTMLElement;
+  
+  // Form State
+  newTask: string = "";
+  newPriority: number = 1;
+  newDueDate: string = "";
+  newCategory: string = "General";
+  newEstimate: number = 1;
+  
+  showCalendar: boolean = false;
+  showCategorySelect: boolean = false;
 
-  if (!taskList || !taskContainer || !activeTaskPill || !activeTaskName) return;
-
-  // --- NEW: Add Task Logic ---
-  if (addBtn && taskInput && taskEstimate) {
-    addBtn.addEventListener('click', () => {
-      const text = taskInput.value.trim();
-      const est = taskEstimate.value || '1'; // Default to 1 pomodoro
-      if (text) {
-        addTask({
-          id: Date.now().toString(),
-          text,
-          estimate: est,
-          priority: 'normal',
-          category: 'work',
-          completed: false
-        });
-        taskInput.value = '';
-        taskEstimate.value = '';
-      }
-    });
-
-    // Also allow pressing "Enter" to add a task
-    taskInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') addBtn.click();
-    });
+  constructor(rootId: string) {
+    this.store = new TaskStore();
+    const rootEl = document.getElementById(rootId);
+    if (!rootEl) throw new Error(`Root element ${rootId} not found`);
+    this.root = rootEl;
+    this.render();
   }
 
-  // Subscribe to Timer state to trigger intense focus mode visuals
-  subscribeTimer((state: any) => {
-    isTimerActive = state.isRunning;
-    render();
+  getPriorityColor(p: number) {
+    if (p === 4) return "text-[#ff6b6b]";
+    if (p === 3) return "text-[#fdcb58]";
+    if (p === 2) return "text-[#54a0ff]";
+    return "text-[#a4b0be]";
+  }
+
+  checkOverdue(dateStr: string | null) {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dateStr + 'T00:00');
+    return due < today;
+  }
+
+  handleFormSubmit(e: Event) {
+    e.preventDefault();
+    if (!this.newTask.trim()) return;
+
+    const taskObj: Task = {
+      id: Date.now(),
+      text: this.newTask,
+      priority: this.newPriority,
+      dueDate: this.newDueDate,
+      category: this.newCategory,
+      estimatedPomos: this.newEstimate,
+      completedPomos: 0,
+      completed: false,
+      completedAt: null,
+      createdAt: Date.now()
+    };
+
+    this.store.addTask(taskObj);
     
-    if (isTimerActive && focusedTaskId) {
-        taskContainer.classList.remove('nook-glass');
-        taskContainer.style.background = 'transparent';
-        taskContainer.style.backdropFilter = 'none';
-        taskContainer.style.border = '2px solid transparent';
-        taskContainer.style.boxShadow = 'none';
-        
-        const activeTask = taskState.tasks.find(t => t.id === focusedTaskId);
-        if (activeTask) {
-            activeTaskName.textContent = activeTask.text;
-            activeTaskPill.style.opacity = '1';
-            activeTaskPill.style.transform = 'translateY(0)';
-        }
-    } else {
-        taskContainer.style.background = '';
-        taskContainer.style.backdropFilter = '';
-        taskContainer.style.border = '';
-        taskContainer.style.boxShadow = '';
-        taskContainer.classList.add('nook-glass');
-        
-        activeTaskPill.style.opacity = '0';
-        activeTaskPill.style.transform = 'translateY(10px)';
-    }
-  });
+    // Reset Form
+    this.newTask = "";
+    this.newPriority = 1;
+    this.newDueDate = "";
+    this.newCategory = "General";
+    this.newEstimate = 1;
+    this.showCalendar = false;
+    
+    this.render();
+  }
 
-  function render() {
-    if (!taskList) return;
-    taskList.innerHTML = '';
+  render() {
+    this.root.innerHTML = '';
+    
+    const card = document.createElement('div');
+    card.className = "flex-1 flex flex-col h-full min-h-[400px] overflow-visible relative z-20 border-4 border-white/60 bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-xl w-full max-w-2xl";
+    
+    const completedCount = this.store.tasks.filter(t => t.completed).length;
+    card.innerHTML += `
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl font-black flex items-center gap-3 text-[#594a42]">
+          <span class="bg-[#fdcb58] w-3 h-8 rounded-full shadow-sm"></span>Today's Tasks
+        </h2>
+        <span class="text-xs font-bold bg-[#f1f2f6] px-3 py-1.5 rounded-full text-[#8e8070] border border-[#e6e2d0]">
+          ${completedCount} / ${this.store.tasks.length}
+        </span>
+      </div>
+    `;
 
-    // If there are no tasks, show a placeholder message
-    if (taskState.tasks.length === 0) {
-      taskList.innerHTML = `<div style="text-align: center; color: var(--color-muted); padding: 40px 0; font-weight: bold; opacity: 0.6;">No tasks yet. Add one below!</div>`;
-      return;
-    }
+    card.appendChild(this.renderForm());
 
-    taskState.tasks.forEach((task: any) => {
-      const isFocused = task.id === focusedTaskId;
-      const li = document.createElement('li');
+    const taskContainerWrap = document.createElement('div');
+    taskContainerWrap.className = "flex-1 overflow-y-auto pr-2 pl-1 custom-scrollbar relative z-0";
+    
+    const taskList = document.createElement('div');
+    taskList.className = "space-y-3 pb-4";
+    
+    this.store.getSortedTasks().forEach(task => {
+      taskList.appendChild(this.renderTaskItem(task));
+    });
+
+    taskContainerWrap.appendChild(taskList);
+    card.appendChild(taskContainerWrap);
+    this.root.appendChild(card);
+  }
+
+  renderForm(): HTMLFormElement {
+    const form = document.createElement('form');
+    form.className = "relative z-30 mb-6 rounded-3xl p-3 border-4 transition-all shadow-sm bg-white border-[#f1f2f6] focus-within:border-[#78b159] focus-within:shadow-md";
+    form.onsubmit = (e) => this.handleFormSubmit(e);
+
+    const activeCat = categories.find(c => c.name === this.newCategory) || categories[0];
+    const displayDate = this.newDueDate ? new Date(this.newDueDate + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Date';
+
+    form.innerHTML = `
+      <input type="text" placeholder="Add a new task..." value="${this.newTask}" class="w-full bg-transparent p-2 pl-2 outline-none font-bold text-[#594a42] placeholder-[#a4b0be] text-base" id="task-input" />
       
-      li.style.display = 'flex';
-      li.style.alignItems = 'center';
-      li.style.gap = '16px';
-      li.style.padding = '16px';
-      li.style.background = '#ffffff';
-      li.style.border = '2px solid #f1f2f6';
-      li.style.borderRadius = '1.5rem'; 
-      li.style.cursor = 'pointer';
-      li.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-      li.style.position = 'relative'; // Required for absolute positioning of the delete button
-      
-      // APPLY FOCUS MODE LOGIC
-      if (isTimerActive) {
-          if (isFocused) {
-              li.style.opacity = '1';
-              li.style.transform = 'scale(1.02)';
-              li.style.borderColor = 'var(--color-green)';
-              li.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
-              li.style.zIndex = '20';
-          } else {
-              li.style.opacity = '0.4';
-              li.style.transform = 'scale(0.95)';
-              li.style.filter = 'blur(0.5px) grayscale(100%)';
-              li.style.pointerEvents = 'none'; 
-          }
-      } else {
-         li.addEventListener('mouseenter', () => { 
-             li.style.borderColor = 'var(--color-green)'; 
-             li.style.boxShadow = '0 6px 15px rgba(0,0,0,0.05)';
-             li.style.transform = 'translateY(-2px)';
-         });
-         li.addEventListener('mouseleave', () => { 
-             li.style.borderColor = isFocused ? 'var(--color-green)' : '#f1f2f6'; 
-             li.style.boxShadow = 'none';
-             li.style.transform = 'translateY(0)';
-         });
-         
-         if (isFocused) {
-            li.style.borderColor = 'var(--color-green)';
-         }
-      }
+      <div class="flex flex-wrap items-center justify-between mt-2 px-1 gap-2">
+        <div class="flex flex-wrap gap-2 relative z-20">
+          <button type="button" id="btn-priority" class="p-2 rounded-xl transition-all hover:bg-black/5 flex items-center gap-1 ${this.getPriorityColor(this.newPriority)}">
+            ${icons.Flag}
+            <span class="text-xs font-black">P${5 - this.newPriority}</span>
+          </button>
+          
+          <div class="relative">
+            <button type="button" id="btn-category" class="bg-transparent text-xs font-bold text-[#8e8070] p-2 hover:bg-black/5 rounded-xl flex items-center gap-1">
+              <span class="${activeCat.color} w-4 h-4">${activeCat.icon}</span> ${this.newCategory}
+            </button>
+            <div id="dropdown-category" class="${this.showCategorySelect ? 'block' : 'hidden'} absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-xl border-2 border-[#f1f2f6] p-2 z-50 w-40 flex flex-col gap-1">
+              ${categories.map(c => `
+                <button type="button" class="btn-select-category flex items-center gap-2 p-2 rounded-xl text-xs font-bold transition-colors w-full text-left hover:bg-[#f1f2f6]" data-category="${c.name}">
+                  <span class="${c.color} w-3.5 h-3.5">${c.icon}</span> ${c.name}
+                </button>
+              `).join('')}
+            </div>
+          </div>
 
-      // Click to focus (Only trigger if we aren't clicking the delete button)
-      li.addEventListener('click', (e) => {
-          if (!isTimerActive && !(e.target as HTMLElement).closest('.delete-task-btn')) {
-             focusedTaskId = isFocused ? null : task.id; 
-             render();
-          }
+          <button type="button" id="btn-estimate" class="flex items-center gap-1 bg-[#f1f2f6] rounded-xl px-3 py-1.5 text-[#594a42] font-bold text-xs cursor-pointer hover:bg-[#e6e2d0] transition-colors">
+            <span>🍅</span> ${this.newEstimate}
+          </button>
+          
+          <div class="relative">
+            <button type="button" id="btn-calendar" class="p-2 rounded-xl transition-all flex items-center gap-2 ${this.newDueDate ? 'bg-[#78b159]/10 text-[#78b159]' : 'text-[#a4b0be] hover:bg-black/5'}">
+              ${icons.CalendarDays}
+              <span class="text-xs font-bold">${displayDate}</span>
+            </button>
+            <div id="dropdown-calendar" class="${this.showCalendar ? 'block' : 'hidden'} absolute top-full left-0 mt-2 z-50 drop-shadow-2xl">
+              </div>
+          </div>
+        </div>
+        <button type="submit" class="bg-[#78b159] text-white p-2 rounded-xl hover:bg-[#6aa34b] shadow-md active:scale-95 transition-transform">
+          ${icons.Plus}
+        </button>
+      </div>
+    `;
+
+    setTimeout(() => {
+      document.getElementById('task-input')?.addEventListener('input', (e) => this.newTask = (e.target as HTMLInputElement).value);
+      document.getElementById('btn-priority')?.addEventListener('click', () => { this.newPriority = this.newPriority >= 4 ? 1 : this.newPriority + 1; this.render(); });
+      document.getElementById('btn-estimate')?.addEventListener('click', () => { this.newEstimate = this.newEstimate >= 10 ? 1 : this.newEstimate + 1; this.render(); });
+      document.getElementById('btn-category')?.addEventListener('click', () => { this.showCategorySelect = !this.showCategorySelect; this.showCalendar = false; this.render(); });
+
+      document.querySelectorAll('.btn-select-category').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const cat = (e.currentTarget as HTMLElement).getAttribute('data-category');
+          if (cat) this.newCategory = cat;
+          this.showCategorySelect = false;
+          this.render();
+        });
       });
 
-      // Add a delete button (visible on hover) to use your removeTask function
-      li.innerHTML = `
-        <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 900; color: var(--color-text); font-size: 16px;">${task.text}</div>
-            <div style="font-size: 10px; font-weight: bold; color: var(--color-muted); margin-top: 4px;">🍅 ${task.estimate} Pomodoros</div>
+      document.getElementById('btn-calendar')?.addEventListener('click', () => { this.showCalendar = !this.showCalendar; this.showCategorySelect = false; this.render(); });
+
+      if (this.showCalendar) {
+        document.getElementById('dropdown-calendar')?.appendChild(this.renderCalendar());
+      }
+    }, 0);
+
+    return form;
+  }
+
+  renderTaskItem(task: Task): HTMLElement {
+    const isFocused = this.store.focusedTaskId === task.id;
+    const isOverdue = !task.completed && this.checkOverdue(task.dueDate);
+    
+    let opacityClass = task.completed ? 'opacity-60 bg-[#f1f2f6] border-transparent' : 'bg-white opacity-100 border-[#f1f2f6] hover:border-[#78b159] hover:shadow-md';
+    if (isOverdue && !task.completed) opacityClass = 'bg-[#ff6b6b]/5 border-[#ff6b6b]/30 hover:border-[#ff6b6b]';
+
+    const div = document.createElement('div');
+    div.className = `group flex items-start gap-4 p-4 rounded-3xl border-2 transition-all duration-300 ${opacityClass}`;
+
+    div.innerHTML = `
+      <button class="btn-toggle-task mt-0.5 w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-colors ${task.completed ? 'bg-[#78b159] border-[#78b159]' : 'border-[#d1d8e0] bg-white'} active:scale-90">
+        ${task.completed ? `<span class="text-white">${icons.CheckSquare}</span>` : ''}
+      </button>
+      
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-base ${task.completed ? 'line-through text-[#a4b0be]' : (isOverdue ? 'text-[#ff6b6b]' : 'text-[#594a42]')}">
+            ${task.text}
+          </span>
+          ${task.priority > 1 ? `<span class="${this.getPriorityColor(task.priority)}">${icons.Flag}</span>` : ''}
+          ${isOverdue && !task.completed ? `<span class="text-[10px] font-black bg-[#ff6b6b] text-white px-2 py-0.5 rounded-full flex items-center gap-1">${icons.AlertCircle} OVERDUE</span>` : ''}
         </div>
         
-        <button class="delete-task-btn" data-id="${task.id}" style="background: transparent; border: none; cursor: pointer; opacity: 0.4; transition: opacity 0.2s; color: var(--color-red); padding: 5px;">
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span class="text-[10px] font-bold text-[#8e8070] bg-[#f1f2f6] px-2 py-1 rounded-lg border border-[#e6e2d0]">${task.category}</span>
+          <span class="text-[10px] font-bold text-[#fdcb58] bg-[#fff8e1] px-2 py-1 rounded-lg border border-[#ffe082]/50">🍅 ${task.completedPomos}/${task.estimatedPomos}</span>
+          ${task.dueDate ? `<span class="text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center gap-1 ${isOverdue && !task.completed ? 'bg-[#ff6b6b]/10 text-[#ff6b6b] border-[#ff6b6b]/20' : 'text-[#78b159] bg-[#f0fff4] border-[#78b159]/20'}">${icons.CalendarDays} ${new Date(task.dueDate + 'T00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>` : ''}
+        </div>
+      </div>
+      
+      <div class="flex gap-1">
+        <button class="btn-focus-task p-2 rounded-xl transition-colors ${isFocused ? 'bg-[#78b159] text-white shadow-md' : 'text-[#a4b0be] hover:bg-[#f1f2f6]'} hover:scale-110">
+          ${icons.Target}
         </button>
+        <button class="btn-delete-task opacity-0 group-hover:opacity-100 text-[#ff6b6b] hover:bg-[#fff0f0] p-2 rounded-xl transition-opacity hover:scale-110">
+          ${icons.Trash2}
+        </button>
+      </div>
+    `;
 
-        <div style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid ${isFocused ? 'var(--color-green)' : '#e6e2d0'}; background: ${isFocused ? 'var(--color-green)' : 'transparent'}; margin-left: 8px;"></div>
-      `;
+    div.querySelector('.btn-toggle-task')?.addEventListener('click', () => { this.store.toggleTask(task.id); this.render(); });
+    div.querySelector('.btn-focus-task')?.addEventListener('click', () => { this.store.focusedTaskId = this.store.focusedTaskId === task.id ? null : task.id; this.render(); });
+    div.querySelector('.btn-delete-task')?.addEventListener('click', () => { this.store.deleteTask(task.id); this.render(); });
 
-      taskList.appendChild(li);
-    });
-
-    // Attach event listeners to the new delete buttons
-    document.querySelectorAll('.delete-task-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id) {
-          if (focusedTaskId === id) focusedTaskId = null; // Unfocus if deleted
-          removeTask(id);
-        }
-      });
-      // Simple hover effect for the trashcan
-      btn.addEventListener('mouseenter', (e) => (e.currentTarget as HTMLElement).style.opacity = '1');
-      btn.addEventListener('mouseleave', (e) => (e.currentTarget as HTMLElement).style.opacity = '0.4');
-    });
+    return div;
   }
 
-  // Subscribe to changes and run initial render
-  subscribeTasks(render);
-  render();
+  renderCalendar(): HTMLElement {
+    const calendarRoot = document.createElement('div');
+    calendarRoot.className = "bg-white rounded-3xl border-4 border-[#e6e2d0] shadow-2xl w-72 h-80 flex flex-col select-none overflow-hidden relative z-50 opacity-100";
+    calendarRoot.addEventListener('click', (e) => e.stopPropagation());
+
+    const scrollArea = document.createElement('div');
+    scrollArea.className = "flex-1 overflow-y-auto px-4 py-4 custom-scrollbar space-y-6";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    for (let i = 0; i < 60; i++) {
+      const monthDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1).getDay();
+
+      let monthHtml = `
+        <div>
+          <h3 class="font-black text-base text-[#78b159] mb-2 sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10 border-b border-[#f1f2f6]">${monthNames[month]} ${year}</h3>
+          <div class="grid grid-cols-7 gap-1 mb-1 text-center">
+            ${['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => `<div class="text-[10px] font-bold text-[#a4b0be] uppercase">${d}</div>`).join('')}
+          </div>
+          <div class="grid grid-cols-7 gap-1">
+      `;
+
+      for (let j = 0; j < firstDay; j++) monthHtml += `<div class="aspect-square"></div>`;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const isPast = date < today;
+        const localIso = date.toLocaleDateString('en-CA');
+        const isSelected = this.newDueDate === localIso;
+
+        const classes = isSelected 
+          ? 'bg-[#fdcb58] text-[#594a42] shadow-sm transform scale-110' 
+          : (isPast ? 'text-gray-200 cursor-default' : 'text-[#594a42] hover:bg-[#c2f2d0] hover:text-[#78b159] hover:scale-110 active:scale-90');
+
+        monthHtml += `
+          <button type="button" class="btn-cal-day aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-200 ${classes}" data-date="${localIso}" ${isPast ? 'disabled' : ''}>
+            ${day}
+          </button>
+        `;
+      }
+
+      monthHtml += `</div></div>`;
+      scrollArea.insertAdjacentHTML('beforeend', monthHtml);
+    }
+
+    scrollArea.querySelectorAll('.btn-cal-day').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const dateStr = (e.currentTarget as HTMLElement).getAttribute('data-date');
+        if (dateStr) { this.newDueDate = dateStr; this.showCalendar = false; this.render(); }
+      });
+    });
+
+    calendarRoot.appendChild(scrollArea);
+
+    const footer = document.createElement('div');
+    footer.className = "px-4 py-3 border-t border-[#e6e2d0] flex justify-center bg-white";
+    footer.innerHTML = `<button class="text-xs font-bold text-[#ff6b6b] hover:bg-[#fff0f0] px-4 py-2 rounded-full transition-colors active:scale-95">Close</button>`;
+    footer.querySelector('button')?.addEventListener('click', () => { this.showCalendar = false; this.render(); });
+    calendarRoot.appendChild(footer);
+
+    return calendarRoot;
+  }
 }
