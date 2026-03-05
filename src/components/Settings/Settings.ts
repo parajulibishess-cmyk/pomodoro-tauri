@@ -1,4 +1,5 @@
 // src/components/Settings/Settings.ts
+import { settingsManager } from '../../store/SettingsManager';
 
 // Define Types
 interface BgPreset {
@@ -82,6 +83,10 @@ export function initSettings() {
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             <span>Timer & Focus</span>
           </button>
+          <button id="tab-tasks" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>Tasks (Todoist)</span>
+          </button>
           <button id="tab-atmosphere" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
             <span>Atmosphere</span>
@@ -144,6 +149,35 @@ export function initSettings() {
             </section>
           </div>
 
+          <div id="content-tasks" class="hidden space-y-10">
+            <section>
+              <h3 class="text-xl font-bold text-[#594a42] mb-4">Todoist Integration</h3>
+              <div class="bg-white p-6 rounded-[2rem] shadow-sm flex flex-col gap-4 border border-[#594a42]/10">
+                <div class="flex flex-col gap-2">
+                  <label class="font-bold text-[#594a42]">Todoist API Token</label>
+                  <p class="text-sm text-[#8e8070] leading-tight">Syncs two-way automatically every 1-2 minutes. Tasks tagged with <span class="font-mono bg-[#f3f0ea] px-1 rounded">/Study</span>, <span class="font-mono bg-[#f3f0ea] px-1 rounded">/Creative</span>, or <span class="font-mono bg-[#f3f0ea] px-1 rounded">/General</span> will be categorized accordingly.</p>
+                  <input 
+                    type="password" 
+                    id="todoist-api-key" 
+                    class="bg-[#f3f0ea] border-2 border-transparent rounded-xl px-4 py-3 text-[#594a42] outline-none focus:border-[#78b159] transition-colors mt-2"
+                    placeholder="Enter Todoist token..."
+                  />
+                </div>
+                <button id="save-todoist-settings" class="bg-[#78b159] text-white font-bold rounded-xl px-6 py-3 mt-2 hover:bg-[#6a9e4e] transition-colors shadow-sm self-start">
+                  Save Integration
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <section class="mt-8">
+              <h3 class="text-xl font-bold text-[#594a42] mb-4">Integrations</h3>
+              <div class="bg-white p-5 rounded-3xl shadow-sm border border-[#594a42]/10">
+                <label class="font-bold text-[#594a42] block mb-2">Todoist API Token</label>
+                <input type="password" id="inp-todoist-token" placeholder="Paste your API Token here..." value="${ls.getItem('todoist_api_token') || ''}" class="w-full bg-[#f3f0ea] rounded-xl px-4 py-3 outline-none text-[#594a42] font-medium transition-colors focus:ring-2 focus:ring-[#78b159]">
+              </div>
+            </section>
+
           <div id="content-atmosphere" class="hidden space-y-10">
             <section>
               <div class="flex justify-between items-center mb-4">
@@ -202,27 +236,43 @@ export function initSettings() {
   
   // Tab Switching
   const tabTimer = document.getElementById('tab-timer');
+  const tabTasks = document.getElementById('tab-tasks');
   const tabAtmos = document.getElementById('tab-atmosphere');
+  
   const contentTimer = document.getElementById('content-timer');
+  const contentTasks = document.getElementById('content-tasks');
   const contentAtmos = document.getElementById('content-atmosphere');
 
-  if (tabTimer && tabAtmos && contentTimer && contentAtmos) {
-    tabTimer.addEventListener('click', () => {
-      tabTimer.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#78b159] bg-[#78b159]/10";
-      tabAtmos.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5";
-      contentTimer.classList.remove('hidden');
-      contentAtmos.classList.add('hidden');
+  function resetTabs() {
+    [tabTimer, tabTasks, tabAtmos].forEach(tab => {
+      if(tab) tab.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5";
     });
-
-    tabAtmos.addEventListener('click', () => {
-      tabAtmos.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#fdcb58] bg-[#fdcb58]/10";
-      tabTimer.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5";
-      contentAtmos.classList.remove('hidden');
-      contentTimer.classList.add('hidden');
+    [contentTimer, contentTasks, contentAtmos].forEach(content => {
+      if(content) content.classList.add('hidden');
     });
   }
 
-  // Modal Open/Close - Using the new button in the Top Navigation Bar
+  if (tabTimer && tabTasks && tabAtmos && contentTimer && contentTasks && contentAtmos) {
+    tabTimer.addEventListener('click', () => {
+      resetTabs();
+      tabTimer.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#78b159] bg-[#78b159]/10";
+      contentTimer.classList.remove('hidden');
+    });
+
+    tabTasks.addEventListener('click', () => {
+      resetTabs();
+      tabTasks.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#54a0ff] bg-[#54a0ff]/10";
+      contentTasks.classList.remove('hidden');
+    });
+
+    tabAtmos.addEventListener('click', () => {
+      resetTabs();
+      tabAtmos.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#fdcb58] bg-[#fdcb58]/10";
+      contentAtmos.classList.remove('hidden');
+    });
+  }
+
+  // Modal Open/Close
   const settingsBtn = document.getElementById('top-settings-btn');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
@@ -308,6 +358,22 @@ export function initSettings() {
     }
   });
 
+  // --- Todoist Integration Interactions ---
+  const tokenInput = document.getElementById('todoist-api-key') as HTMLInputElement;
+  const saveTodoistBtn = document.getElementById('save-todoist-settings');
+
+  if (tokenInput) tokenInput.value = settingsManager.todoistToken;
+
+  saveTodoistBtn?.addEventListener('click', () => {
+    if (tokenInput) {
+      settingsManager.todoistToken = tokenInput.value; // Re-initialize the sync immediately
+      
+      const originalText = saveTodoistBtn.innerText;
+      saveTodoistBtn.innerText = "Saved & Syncing...";
+      setTimeout(() => saveTodoistBtn.innerText = originalText, 2000);
+    }
+  });
+
   // --- Atmosphere Interactions ---
   const slOpacity = document.getElementById('sl-opacity') as HTMLInputElement | null;
   const lblOpacity = document.getElementById('lbl-opacity');
@@ -318,6 +384,15 @@ export function initSettings() {
       applyBackground(); // Dynamically update body background overlay opacity when dragging
     };
     slOpacity.addEventListener('input', updateOpacity); updateOpacity();
+  }
+
+  const inpTodoistToken = document.getElementById('inp-todoist-token') as HTMLInputElement | null;
+  if (inpTodoistToken) {
+    inpTodoistToken.addEventListener('change', (e) => {
+      ls.setItem('todoist_api_token', (e.target as HTMLInputElement).value);
+      window.dispatchEvent(new Event('settings-changed'));
+      window.location.reload(); // Reload to initialize store with the new API key
+    });
   }
 
   // Grid Rendering

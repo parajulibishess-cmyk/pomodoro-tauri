@@ -1,4 +1,4 @@
-import { Task, TaskStore } from '../../store/TaskStore';
+import { Task, taskStore } from '../../store/TaskStore';
 
 // SVGs for Vanilla JS
 const icons = {
@@ -20,7 +20,7 @@ const categories = [
 ];
 
 export class TaskSectionUI {
-  store: TaskStore;
+  store = taskStore;
   root: HTMLElement;
   
   // Form State
@@ -34,11 +34,13 @@ export class TaskSectionUI {
   showCategorySelect: boolean = false;
 
   constructor(rootId: string) {
-    this.store = new TaskStore();
     const rootEl = document.getElementById(rootId);
     if (!rootEl) throw new Error(`Root element ${rootId} not found`);
     this.root = rootEl;
     this.render();
+    
+    // Listen for background sync updates
+    window.addEventListener('tasks-updated', () => this.render());
   }
 
   getPriorityColor(p: number) {

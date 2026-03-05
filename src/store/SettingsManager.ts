@@ -7,6 +7,14 @@ export class SettingsManager {
     return parseInt(this.ls.getItem('focusDuration') || '25') * 60;
   }
 
+  get todoistToken(): string {
+    return this.ls.getItem('todoistToken') || '';
+  }
+
+  set todoistToken(token: string) {
+    this.ls.setItem('todoistToken', token);
+  }
+
   get shortBreakDuration(): number {
     return parseInt(this.ls.getItem('shortBreakDuration') || '5') * 60;
   }
