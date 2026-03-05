@@ -1,32 +1,80 @@
 /* src/styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+:root {
+  --color-bg: #fcfcf7;
+  --color-paper: #fffdf5;
+  --color-text: #594a42;
+  --color-muted: #8e8070;
+  --color-green: #78b159;
+  --color-dark-green: #558c3f;
+  --color-yellow: #fdcb58;
+  --color-blue: #54a0ff;
+  --color-red: #ff6b6b;
+}
+
 body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
   transition: all 0.2s ease-in-out;
 }
+button:hover { transform: translateY(-2px); }
+button:active { transform: translateY(1px); }
 
-button:hover {
-  transform: translateY(-2px);
+/* Glassmorphism Effect */
+.nook-glass {
+  background: rgba(255, 253, 245, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 6px -1px rgba(89, 74, 66, 0.05), 
+    0 10px 15px -3px rgba(89, 74, 66, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.5); /* Inner white glow */
+  border-radius: 32px;
 }
 
-button:active {
-  transform: translateY(1px);
+/* Custom Scrollbars - Gentle floating pill */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Track removed */
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(142, 128, 112, 0.3);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(142, 128, 112, 0.5);
 }
 
-/* Custom scrollbar for the task list */
-#task-list::-webkit-scrollbar {
-  width: 6px;
+/* Hide Number Input Spinners completely */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
-#task-list::-webkit-scrollbar-track {
-  background: transparent;
+/* Pulsing animation for the active task dot */
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
 }
-
-#task-list::-webkit-scrollbar-thumb {
-  background: #e6e2d0;
-  border-radius: 10px;
+.dot-pulse {
+  animation: pulse 2s infinite;
 }

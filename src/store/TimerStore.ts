@@ -1,3 +1,5 @@
+// src/store/TimerStore.ts
+
 export const MODES = {
   focus: 25 * 60,
   short: 5 * 60,
@@ -12,7 +14,8 @@ export const timerState = {
   isRunning: false,
 };
 
-type Listener = () => void;
+// 1. Update the Listener type to expect the state parameter
+type Listener = (state: typeof timerState) => void;
 const listeners: Listener[] = [];
 
 export function subscribeTimer(listener: Listener) {
@@ -20,5 +23,6 @@ export function subscribeTimer(listener: Listener) {
 }
 
 export function notifyTimer() {
-  listeners.forEach(listener => listener());
+  // 2. Pass the timerState object to the listeners
+  listeners.forEach(listener => listener(timerState));
 }

@@ -3,11 +3,17 @@ import { toggleTimer, setMode } from '../../utils/TimerLogic';
 import { formatTime } from '../../utils/TimeFormat';
 
 export function initTimerUI() {
+  
   const timeDisplay = document.getElementById('time-display')!;
   const startPauseBtn = document.getElementById('start-pause-btn')!;
   const modeBtns = document.querySelectorAll('.mode-btn');
   const progressCircle = document.getElementById('progress-circle') as SVGCircleElement | null;
   const modeLabel = document.getElementById('mode-label')!;
+
+    timeDisplay.textContent = formatTime(timerState.timeLeft);
+
+
+  
 
   const circleRadius = 115;
   const circumference = 2 * Math.PI * circleRadius;
