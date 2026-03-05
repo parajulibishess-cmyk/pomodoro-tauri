@@ -89,13 +89,12 @@ export class TaskSectionUI {
   render() {
     this.root.innerHTML = '';
     
-    const card = document.createElement('div');
-    card.className = "flex-1 flex flex-col h-full min-h-[400px] overflow-visible relative z-20 border-4 border-white/60 bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-xl w-full max-w-2xl";
-    
     const completedCount = this.store.tasks.filter(t => t.completed).length;
-    card.innerHTML += `
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-black flex items-center gap-3 text-[#594a42]">
+    
+    // Header for Tasks
+    this.root.innerHTML += `
+      <div class="flex items-center justify-between shrink-0 mb-1">
+        <h2 class="text-2xl font-black flex items-center gap-3 m-0 text-[#594a42]">
           <span class="bg-[#fdcb58] w-3 h-8 rounded-full shadow-sm"></span>Today's Tasks
         </h2>
         <span class="text-xs font-bold bg-[#f1f2f6] px-3 py-1.5 rounded-full text-[#8e8070] border border-[#e6e2d0]">
@@ -104,43 +103,58 @@ export class TaskSectionUI {
       </div>
     `;
 
-    card.appendChild(this.renderForm());
+    // TOP & MIDDLE: Form, Input & Attributes
+    this.root.appendChild(this.renderForm());
 
-    const taskContainerWrap = document.createElement('div');
-    taskContainerWrap.className = "flex-1 overflow-y-auto pr-2 pl-1 custom-scrollbar relative z-0";
+    // BOTTOM: Flex-grow Task List wrapper (This allows scrolling independently inside the aside)
+    const listWrap = document.createElement('div');
+    listWrap.className = "flex-grow overflow-hidden relative";
     
-    const taskList = document.createElement('div');
-    taskList.className = "space-y-3 pb-4";
+    const taskList = document.createElement('ul');
+    taskList.className = "custom-scrollbar absolute inset-0 overflow-y-auto space-y-3 pr-2 m-0 p-0 list-none";
     
     this.store.getSortedTasks().forEach(task => {
       taskList.appendChild(this.renderTaskItem(task));
     });
 
-    taskContainerWrap.appendChild(taskList);
-    card.appendChild(taskContainerWrap);
-    this.root.appendChild(card);
+    listWrap.appendChild(taskList);
+    this.root.appendChild(listWrap);
   }
 
   renderForm(): HTMLFormElement {
     const form = document.createElement('form');
-    form.className = "relative z-30 mb-6 rounded-3xl p-3 border-4 transition-all shadow-sm bg-white border-[#f1f2f6] focus-within:border-[#78b159] focus-within:shadow-md";
+    // Top & Middle encapsulated inside .nook-glass-inner
+    form.className = "nook-glass-inner bg-white/60 backdrop-blur-md border-2 border-white/70 rounded-2xl p-3 flex flex-col gap-3 shrink-0 shadow-sm focus-within:border-[#78b159] transition-colors relative z-30";
     form.onsubmit = (e) => this.handleFormSubmit(e);
 
     const activeCat = categories.find(c => c.name === this.newCategory) || categories[0];
-    const displayDate = this.newDueDate ? new Date(this.newDueDate + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Date';
+    const displayDate = this.newDueDate ? new Date(this.newDueDate + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Due Date';
 
     form.innerHTML = `
-      <input type="text" placeholder="Add a new task..." value="${this.newTask}" class="w-full bg-transparent p-2 pl-2 outline-none font-bold text-[#594a42] placeholder-[#a4b0be] text-base" id="task-input" />
+      <input type="text" placeholder="What are you working on?" value="${this.newTask}" class="w-full bg-transparent p-1 outline-none font-bold text-[#594a42] placeholder-[#a4b0be] text-base" id="task-input" />
       
-      <div class="flex flex-wrap items-center justify-between mt-2 px-1 gap-2">
+      <div class="flex flex-wrap items-center justify-between mt-1 gap-2">
         <div class="flex flex-wrap gap-2 relative z-20">
-          <button type="button" id="btn-priority" class="p-2 rounded-xl transition-all hover:bg-black/5 flex items-center gap-1 ${this.getPriorityColor(this.newPriority)}">
+          <button type="button" id="btn-priority" class="px-3 py-1.5 rounded-xl bg-white/80 hover:bg-white transition-all shadow-sm flex items-center gap-1 ${this.getPriorityColor(this.newPriority)}">
             ${icons.Flag}
             <span class="text-xs font-black">P${5 - this.newPriority}</span>
           </button>
           
           <div class="relative">
-            <button type="button" id="btn-category" class="bg-transparent text-xs font-bold text-[#8e8070] p-2 hover:bg-black/5 rounded-xl flex items-center gap-1">
+             <button type="button" id="btn-calendar" class="px-3 py-1.5 rounded-xl bg-white/80 transition-all shadow-sm flex items-center gap-2 ${this.newDueDate ? 'bg-[#78b159]/10 text-[#78b159]' : 'text-[#a4b0be] hover:bg-white'}">
+              ${icons.CalendarDays}
+              <span class="text-xs font-bold">${displayDate}</span>
+            </button>
+            <div id="dropdown-calendar" class="${this.showCalendar ? 'block' : 'hidden'} absolute top-full left-0 mt-2 z-50 drop-shadow-2xl">
+              </div>
+          </div>
+
+          <button type="button" id="btn-estimate" class="flex items-center gap-1 bg-[#f1f2f6] rounded-xl px-3 py-1.5 text-[#594a42] font-bold text-xs cursor-pointer hover:bg-[#e6e2d0] shadow-sm transition-colors">
+            <span>🍅</span> ${this.newEstimate}
+          </button>
+
+          <div class="relative">
+            <button type="button" id="btn-category" class="bg-white/80 text-xs font-bold text-[#8e8070] px-3 py-1.5 shadow-sm hover:bg-white rounded-xl flex items-center gap-1">
               <span class="${activeCat.color} w-4 h-4">${activeCat.icon}</span> ${this.newCategory}
             </button>
             <div id="dropdown-category" class="${this.showCategorySelect ? 'block' : 'hidden'} absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-xl border-2 border-[#f1f2f6] p-2 z-50 w-40 flex flex-col gap-1">
@@ -150,19 +164,6 @@ export class TaskSectionUI {
                 </button>
               `).join('')}
             </div>
-          </div>
-
-          <button type="button" id="btn-estimate" class="flex items-center gap-1 bg-[#f1f2f6] rounded-xl px-3 py-1.5 text-[#594a42] font-bold text-xs cursor-pointer hover:bg-[#e6e2d0] transition-colors">
-            <span>🍅</span> ${this.newEstimate}
-          </button>
-          
-          <div class="relative">
-            <button type="button" id="btn-calendar" class="p-2 rounded-xl transition-all flex items-center gap-2 ${this.newDueDate ? 'bg-[#78b159]/10 text-[#78b159]' : 'text-[#a4b0be] hover:bg-black/5'}">
-              ${icons.CalendarDays}
-              <span class="text-xs font-bold">${displayDate}</span>
-            </button>
-            <div id="dropdown-calendar" class="${this.showCalendar ? 'block' : 'hidden'} absolute top-full left-0 mt-2 z-50 drop-shadow-2xl">
-              </div>
           </div>
         </div>
         <button type="submit" class="bg-[#78b159] text-white p-2 rounded-xl hover:bg-[#6aa34b] shadow-md active:scale-95 transition-transform">
@@ -203,7 +204,7 @@ export class TaskSectionUI {
     let opacityClass = task.completed ? 'opacity-60 bg-[#f1f2f6] border-transparent' : 'bg-white opacity-100 border-[#f1f2f6] hover:border-[#78b159] hover:shadow-md';
     if (isOverdue && !task.completed) opacityClass = 'bg-[#ff6b6b]/5 border-[#ff6b6b]/30 hover:border-[#ff6b6b]';
 
-    const div = document.createElement('div');
+    const div = document.createElement('li');
     div.className = `group flex items-start gap-4 p-4 rounded-3xl border-2 transition-all duration-300 ${opacityClass}`;
 
     div.innerHTML = `

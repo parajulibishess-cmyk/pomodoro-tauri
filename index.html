@@ -8,15 +8,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nook Focus</title>
   </head>
-  <body class="h-screen m-0 overflow-hidden flex flex-col items-center justify-center relative bg-[#fcfcf7]">
+  
+  <body class="w-screen h-screen m-0 overflow-hidden bg-[#fcfcf7] relative flex items-center justify-center font-nunito text-[#594a42]">
     
     <div id="dynamic-bg" class="fixed inset-0 z-[-2] bg-cover bg-center transition-all duration-1000"></div>
     <div id="dynamic-bg-overlay" class="fixed inset-0 z-[-1] bg-[#fcfcf7] transition-all duration-1000"></div>
     <div class="fixed inset-0 z-[-1] pointer-events-none bg-[radial-gradient(var(--color-green)_4px,transparent_4px)] [background-size:40px_40px] opacity-15"></div>
 
-    <div id="app-container" class="w-full max-w-[1600px] h-full p-8 md:p-12 box-border grid grid-cols-12 gap-8" style="grid-template-rows: auto 1fr;">
+    <div id="app-container" class="w-full max-w-[1600px] h-full p-[24px] grid grid-cols-1 md:grid-cols-12 gap-[32px] mx-auto box-border" style="grid-template-rows: auto minmax(0, 1fr);">
       
-      <div class="col-span-12 flex justify-between items-center w-full min-h-[70px] h-[10vh]">
+      <header class="col-span-1 md:col-span-12 flex justify-between items-center min-h-[70px] h-[10vh] w-full mb-2">
         <div class="flex items-center gap-5">
           <div class="bg-white/90 p-3.5 rounded-3xl shadow-sm border-2 border-white/50 backdrop-blur-md -rotate-3 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#78b159" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
@@ -33,7 +34,7 @@
             Settings
           </button>
         </div>
-      </div>
+      </header>
 
       <div id="timer-section" class="nook-glass col-span-7 flex flex-col items-center justify-center min-h-[500px] relative self-center w-full">
         <div id="mode-switcher" style="display: flex; gap: 8px; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 99px; margin-bottom: 20px; z-index: 20; border: 2px solid rgba(255,255,255,0.5);">
@@ -42,17 +43,17 @@
           <button data-mode="long" class="mode-btn" style="padding: 12px 24px; border-radius: 99px; border: none; background: transparent; font-weight: 900; cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-muted);">Long</button>
         </div>
 
-        <div style="position: relative; width: 320px; height: 320px; display: flex; justify-content: center; align-items: center; z-index: 10; margin-bottom: 20px;">
+        <div style="position: relative; width: 100%; max-width: 300px; aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; z-index: 10; margin-bottom: 20px;">
           <div style="position: absolute; inset: 0; background: rgba(255,255,255,0.4); filter: blur(24px); transform: scale(1.1); border-radius: 50%; z-index: -1;"></div>
 
-          <svg style="position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible;">
-            <circle cx="50%" cy="50%" r="115" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="24" stroke-linecap="round"></circle>
-            <circle id="progress-circle" cx="50%" cy="50%" r="115" fill="none" stroke="var(--color-green)" stroke-width="24" stroke-linecap="round" style="transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease;"></circle>
+          <svg viewBox="0 0 100 100" style="position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible;">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="6" stroke-linecap="round"></circle>
+            <circle id="progress-circle" cx="50" cy="50" r="45" fill="none" stroke="var(--color-green)" stroke-width="6" stroke-linecap="round" style="transition: stroke-dashoffset 0.5s linear, stroke 0.5s ease;"></circle>
           </svg>
           
-          <div style="text-align: center; z-index: 10;">
-            <h1 id="time-display" style="font-size: 6rem; font-weight: 900; margin: 0; font-family: monospace; color: var(--color-text); transition: opacity 0.4s ease;">25:00</h1>
-            <span id="mode-label" style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; background: rgba(89, 74, 66, 0.1); padding: 4px 12px; border-radius: 99px; color: var(--color-text);">Focus Session</span>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; width: 100%;">
+            <h1 id="time-display" style="font-size: 3.5rem; font-weight: 900; margin: 0; font-family: monospace; color: var(--color-text); transition: opacity 0.4s ease; line-height: 1;">25:00</h1>
+            <span id="mode-label" style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; background: rgba(89, 74, 66, 0.1); padding: 4px 12px; border-radius: 99px; color: var(--color-text); margin-top: 8px;">Focus Session</span>
           </div>
 
           <div id="active-task-pill" style="opacity: 0; pointer-events: none; position: absolute; bottom: -45px; white-space: nowrap; z-index: 30; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 99px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 2px solid rgba(255,255,255,0.8); backdrop-filter: blur(5px); color: var(--color-text); display: flex; align-items: center; gap: 8px; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(10px);">
@@ -65,24 +66,10 @@
           <button id="start-pause-btn" style="min-width: 160px; padding: 16px; font-size: 20px; font-weight: 900; border-radius: 16px; border: none; background: var(--color-green); color: white; cursor: pointer; box-shadow: 0 4px 15px rgba(120, 177, 89, 0.3); transition: all 0.2s;">Start</button>
         </div>
       </div>
+      </main>
 
-      <div id="task-section-root" class="h-screen p-8 bg-[#fcfcf7] font-nunito flex items-center justify-center">
-  </div>
-
-      <div id="task-container" class="nook-glass col-span-5 flex flex-col min-h-[400px] h-[85%] p-6 box-border transition-all duration-500 self-center w-full">
-        <h2 style="font-size: 24px; font-weight: 900; display: flex; align-items: center; gap: 8px; margin: 0 0 20px 0; color: var(--color-text);">
-            <span style="background: var(--color-yellow); width: 12px; height: 28px; border-radius: 99px;"></span>Today's Tasks
-        </h2>
-        
-        <ul id="task-list" class="custom-scrollbar" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding-right: 8px; padding-bottom: 20px; position: relative; z-index: 10;">
-        </ul>
-
-        <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 2px dashed rgba(89, 74, 66, 0.1);">
-          <input type="text" id="new-task-input" placeholder="What are you working on?" style="flex: 1; padding: 12px 16px; border-radius: 12px; border: 2px solid #f1f2f6; outline: none; font-weight: bold; color: var(--color-text); background: white;">
-          <input type="number" id="new-task-estimate" placeholder="🍅" min="1" max="10" style="width: 60px; padding: 12px; border-radius: 12px; border: 2px solid #f1f2f6; outline: none; text-align: center; font-weight: bold; color: var(--color-text); background: white;">
-          <button id="add-task-btn" style="background: var(--color-yellow); color: var(--color-text); font-weight: 900; padding: 0 20px; border-radius: 12px; border: none; cursor: pointer; transition: transform 0.1s;">Add</button>
-        </div>
-      </div>
+      <aside id="task-section-root" class="col-span-1 md:col-span-5 flex flex-col gap-[16px] h-full w-full overflow-hidden nook-glass p-6 border-[4px] border-white/50 shadow-2xl rounded-[32px]">
+        </aside>
 
     </div>
     <script type="module" src="/src/main.ts"></script>

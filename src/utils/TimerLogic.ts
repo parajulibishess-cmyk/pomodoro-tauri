@@ -1,15 +1,43 @@
-import { timerState, MODES, notifyTimer, Mode } from '../store/TimerStore';
+// src/utils/TimerLogic.ts
+import { timerState, notifyTimer, Mode } from '../store/TimerStore';
+import { settingsManager } from '../store/SettingsManager';
 
 let timerId: number | null = null;
 
 function tick() {
   if (timerState.timeLeft > 0) {
     timerState.timeLeft--;
-    notifyTimer(); // Tell the UI to update
+    notifyTimer(); 
   } else {
-    pauseTimer();
-    alert(`${timerState.currentMode.toUpperCase()} session complete!`);
-    // Future: Trigger Flow State Modal here
+    handleCycleComplete();
+  }
+}
+
+function handleCycleComplete() {
+  pauseTimer();
+  
+  if (timerState.currentMode === 'focus') {
+    timerState.pomodoroCount++;
+    // Check if long break interval is reached
+    if (timerState.pomodoroCount % settingsManager.longBreakInterval === 0) {
+      setMode('long');
+    } else {
+      setMode('short');
+    }
+    // Auto start breaks if setting is enabled
+    if (settingsManager.autoStartBreaks) {
+      startTimer();
+    }
+  } else if (timerState.currentMode === 'short') {
+    // Break is over -> Go to Focus
+    setMode('focus');
+    if (settingsManager.autoStartBreaks) {
+      startTimer();
+    }
+  } else if (timerState.currentMode === 'long') {
+    // End of full cycle -> Reset count to 0, return to focus mode, strictly NO auto start
+    timerState.pomodoroCount = 0; 
+    setMode('focus');
   }
 }
 
@@ -31,13 +59,14 @@ export function pauseTimer() {
 }
 
 export function toggleTimer() {
-    if (timerState.isRunning) pauseTimer();
-    else startTimer();
+  if (timerState.isRunning) pauseTimer();
+  else startTimer();
 }
 
 export function setMode(mode: Mode) {
   pauseTimer();
   timerState.currentMode = mode;
-  timerState.timeLeft = MODES[mode];
+  // Always fetch dynamic duration from SettingsManager upon switching modes
+  timerState.timeLeft = settingsManager.getDurationForMode(mode);
   notifyTimer();
 }

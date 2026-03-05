@@ -1,3 +1,5 @@
+// src/components/Settings/Settings.ts
+
 // Define Types
 interface BgPreset {
   name: string;
@@ -257,6 +259,7 @@ export function initSettings() {
     if (el) {
       el.addEventListener('change', (e) => {
         ls.setItem(`${type}Duration`, (e.target as HTMLInputElement).value);
+        window.dispatchEvent(new Event('settings-changed')); 
       });
     }
   });
@@ -288,6 +291,7 @@ export function initSettings() {
     const updateInterval = () => {
       lblInterval.innerText = slInterval.value;
       ls.setItem('longBreakInterval', slInterval.value);
+      window.dispatchEvent(new Event('settings-changed')); 
     };
     slInterval.addEventListener('input', updateInterval); updateInterval();
   }
@@ -297,10 +301,12 @@ export function initSettings() {
     const idMap: any = { autoStartBreaks: 'tg-auto', deepFocusMode: 'tg-deep', showTimerPercentage: 'tg-pct' };
     const cb = document.getElementById(idMap[key]) as HTMLInputElement | null;
     if (cb) {
-      cb.addEventListener('change', () => ls.setItem(key, cb.checked.toString()));
+      cb.addEventListener('change', () => {
+        ls.setItem(key, cb.checked.toString());
+        window.dispatchEvent(new Event('settings-changed')); 
+      });
     }
   });
-
 
   // --- Atmosphere Interactions ---
   const slOpacity = document.getElementById('sl-opacity') as HTMLInputElement | null;
