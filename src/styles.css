@@ -127,3 +127,13 @@ input[type=range].custom-slider::-webkit-slider-thumb {
   background-color: #d1d5db;
   border-radius: 20px;
 }
+
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  overflow-y: auto;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}

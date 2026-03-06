@@ -113,7 +113,7 @@ export class TaskSectionUI {
     listWrap.className = "flex-grow overflow-hidden relative";
     
     const taskList = document.createElement('ul');
-    taskList.className = "custom-scrollbar absolute inset-0 overflow-y-auto space-y-3 pr-2 m-0 p-0 list-none";
+    taskList.className = "hide-scrollbar absolute inset-0 overflow-y-auto space-y-3 pr-2 m-0 p-0 list-none";
     
     this.store.getSortedTasks().forEach(task => {
       taskList.appendChild(this.renderTaskItem(task));
@@ -253,7 +253,7 @@ export class TaskSectionUI {
     calendarRoot.addEventListener('click', (e) => e.stopPropagation());
 
     const scrollArea = document.createElement('div');
-    scrollArea.className = "flex-1 overflow-y-auto px-4 py-4 custom-scrollbar space-y-6";
+    scrollArea.className = "flex-1 overflow-y-auto px-4 py-4 hide-scrollbar space-y-6";
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);

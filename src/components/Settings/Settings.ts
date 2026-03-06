@@ -35,13 +35,11 @@ export function initSettings() {
   if (!ls.getItem('deepFocusMode')) ls.setItem('deepFocusMode', 'false');
   if (!ls.getItem('showTimerPercentage')) ls.setItem('showTimerPercentage', 'false');
 
-  // Atmosphere Settings: Set index 3 (Night) as default!
+  // Atmosphere Settings
   if (!ls.getItem('nook_bg_url')) ls.setItem('nook_bg_url', DEFAULT_PRESETS[3].url); 
   if (!ls.getItem('nook_bg_opacity')) ls.setItem('nook_bg_opacity', '0.4');
   if (!ls.getItem('nook_bg_presets')) ls.setItem('nook_bg_presets', JSON.stringify(DEFAULT_PRESETS));
 
-  // --- WALLPAPER RENDERER FIX ---
-  // A function to paint the chosen background onto the body
   function applyBackground() {
     const bgUrl = ls.getItem('nook_bg_url');
     const bgOpacity = ls.getItem('nook_bg_opacity') || '0.4';
@@ -51,12 +49,10 @@ export function initSettings() {
     
     if (bgEl && overlayEl) {
       bgEl.style.backgroundImage = `url('${bgUrl}')`;
-      // Overlay dictates how faded the wallpaper gets
       overlayEl.style.opacity = bgOpacity; 
     }
   }
 
-  // Trigger it on boot, and whenever settings change the background
   applyBackground();
   window.addEventListener('nook-bg-changed', applyBackground);
 
@@ -85,7 +81,7 @@ export function initSettings() {
           </button>
           <button id="tab-tasks" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <span>Tasks (Todoist)</span>
+            <span>Tasks</span>
           </button>
           <button id="tab-atmosphere" class="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-semibold transition-all text-[#594a42]/60 hover:bg-[#594a42]/5">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
@@ -159,6 +155,7 @@ export function initSettings() {
                   <input 
                     type="password" 
                     id="todoist-api-key" 
+                    value="${ls.getItem('todoist_api_token') || ''}"
                     class="bg-[#f3f0ea] border-2 border-transparent rounded-xl px-4 py-3 text-[#594a42] outline-none focus:border-[#78b159] transition-colors mt-2"
                     placeholder="Enter Todoist token..."
                   />
@@ -169,14 +166,6 @@ export function initSettings() {
               </div>
             </section>
           </div>
-
-          <section class="mt-8">
-              <h3 class="text-xl font-bold text-[#594a42] mb-4">Integrations</h3>
-              <div class="bg-white p-5 rounded-3xl shadow-sm border border-[#594a42]/10">
-                <label class="font-bold text-[#594a42] block mb-2">Todoist API Token</label>
-                <input type="password" id="inp-todoist-token" placeholder="Paste your API Token here..." value="${ls.getItem('todoist_api_token') || ''}" class="w-full bg-[#f3f0ea] rounded-xl px-4 py-3 outline-none text-[#594a42] font-medium transition-colors focus:ring-2 focus:ring-[#78b159]">
-              </div>
-            </section>
 
           <div id="content-atmosphere" class="hidden space-y-10">
             <section>
@@ -358,19 +347,31 @@ export function initSettings() {
     }
   });
 
-  // --- Todoist Integration Interactions ---
+  // --- Todoist Integration Interactions (Confined to Tasks Tab) ---
   const tokenInput = document.getElementById('todoist-api-key') as HTMLInputElement;
   const saveTodoistBtn = document.getElementById('save-todoist-settings');
 
-  if (tokenInput) tokenInput.value = settingsManager.todoistToken;
+  if (tokenInput) {
+    tokenInput.addEventListener('change', (e) => {
+      ls.setItem('todoist_api_token', (e.target as HTMLInputElement).value);
+      window.dispatchEvent(new Event('settings-changed'));
+    });
+  }
 
   saveTodoistBtn?.addEventListener('click', () => {
     if (tokenInput) {
-      settingsManager.todoistToken = tokenInput.value; // Re-initialize the sync immediately
+      const newToken = tokenInput.value;
+      settingsManager.todoistToken = newToken; 
+      ls.setItem('todoist_api_token', newToken); 
       
       const originalText = saveTodoistBtn.innerText;
       saveTodoistBtn.innerText = "Saved & Syncing...";
-      setTimeout(() => saveTodoistBtn.innerText = originalText, 2000);
+      
+      setTimeout(() => {
+        saveTodoistBtn.innerText = originalText;
+        window.dispatchEvent(new Event('settings-changed'));
+        window.location.reload(); // Reload immediately initializes store with the new API key
+      }, 1000);
     }
   });
 
@@ -381,18 +382,9 @@ export function initSettings() {
     const updateOpacity = () => {
       lblOpacity.innerText = `${Math.round(parseFloat(slOpacity.value) * 100)}%`;
       ls.setItem('nook_bg_opacity', slOpacity.value);
-      applyBackground(); // Dynamically update body background overlay opacity when dragging
+      applyBackground(); 
     };
     slOpacity.addEventListener('input', updateOpacity); updateOpacity();
-  }
-
-  const inpTodoistToken = document.getElementById('inp-todoist-token') as HTMLInputElement | null;
-  if (inpTodoistToken) {
-    inpTodoistToken.addEventListener('change', (e) => {
-      ls.setItem('todoist_api_token', (e.target as HTMLInputElement).value);
-      window.dispatchEvent(new Event('settings-changed'));
-      window.location.reload(); // Reload to initialize store with the new API key
-    });
   }
 
   // Grid Rendering
@@ -428,14 +420,12 @@ export function initSettings() {
         if ((e.target as HTMLElement).closest('.delete-btn')) return;
         ls.setItem('nook_bg_url', preset.url);
         renderGrid();
-        // Dispatch a custom event so the main app knows the background changed
         window.dispatchEvent(new Event('nook-bg-changed'));
       });
 
       grid.appendChild(item);
     });
 
-    // Attach delete listeners
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt((e.currentTarget as HTMLElement).getAttribute('data-idx')!);
@@ -448,7 +438,6 @@ export function initSettings() {
   
   renderGrid();
 
-  // Add Background
   const btnAddBg = document.getElementById('btn-add-bg');
   if (btnAddBg) {
     btnAddBg.addEventListener('click', () => {
