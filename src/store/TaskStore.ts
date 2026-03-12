@@ -4,6 +4,13 @@ import { TodoistApi, Task as TodoistTask } from '@doist/todoist-api-typescript';
 interface TodoistProject {
   id: string;
   name: string;
+  isInboxProject?: boolean;
+}
+
+interface TodoistSection {
+  id: string;
+  projectId: string;
+  name: string;
 }
 
 export interface Task {
@@ -27,8 +34,8 @@ export class TaskStore {
   private todoistApi: TodoistApi | null = null;
   private syncInterval: number | null = null;
   
-  // 3. Use the local interface here
   private projects: TodoistProject[] = []; 
+  private sections: TodoistSection[] = [];
 
   constructor() {
     this.loadState();
@@ -43,14 +50,18 @@ export class TaskStore {
     }
   }
 
-  async fetchProjects() {
+  async fetchProjectsAndSections() {
     if (!this.todoistApi) return;
     try {
-      const response: any = await this.todoistApi.getProjects();
-      // Ensure we extract the projects array correctly whether it's wrapped or not
-      this.projects = Array.isArray(response) ? response : (response.results || []);
+      const [projResponse, secResponse]: [any, any] = await Promise.all([
+        this.todoistApi.getProjects(),
+        this.todoistApi.getSections()
+      ]);
+      
+      this.projects = Array.isArray(projResponse) ? projResponse : (projResponse.results || []);
+      this.sections = Array.isArray(secResponse) ? secResponse : (secResponse.results || []);
     } catch (e) {
-      console.error("Failed to fetch Todoist projects", e);
+      console.error("Failed to fetch Todoist projects or sections", e);
     }
   }
 
@@ -63,30 +74,47 @@ export class TaskStore {
   async syncWithTodoist() {
     if (!this.todoistApi) return;
     try {
-      if (this.projects.length === 0) await this.fetchProjects();
+      // Always fetch latest structure to catch newly created projects/sections
+      await this.fetchProjectsAndSections();
 
       const response: any = await this.todoistApi.getTasks();
       const fetchedTasks = Array.isArray(response) ? response : (response.results || []);
       let hasUpdates = false;
 
+      // 1. Process active tasks coming from Todoist
       fetchedTasks.forEach((tt: TodoistTask) => {
         const existing = this.tasks.find(t => t.id.toString() === tt.id);
         
-        // Match project ID from Todoist mapping it into standard NookFocus Categories
-        let mappedCategory = "General"; // Default to General for the Inbox
+        let mappedCategory = "General"; // Default to General
+        const validCategories = ["General", "Work", "Study", "Creative", "Reading"];
         
-        if (tt.projectId) {
+        const labelCategory = validCategories.find(cat => tt.labels?.includes(cat));
+        
+        let sectionName = "";
+        if (tt.sectionId) {
+           const section = this.sections.find(s => s.id === tt.sectionId);
+           if (section) sectionName = section.name;
+        }
+
+        if (validCategories.includes(sectionName)) {
+           // 1. Prioritize Section name matching exactly (e.g., if placed in Inbox/Study)
+           mappedCategory = sectionName;
+        } else if (tt.projectId) {
           const project = this.projects.find(p => p.id === tt.projectId);
           if (project) {
-            const validCategories = ["General", "Work", "Study", "Creative", "Reading"];
-            
-            // If the project is literally the Inbox, mark it General. Otherwise, use exact name matching.
             if ((project as any).isInboxProject || project.name === "Inbox") {
-              mappedCategory = "General";
+              // 2. If Inbox, rely on label fallback
+              mappedCategory = labelCategory || "General";
             } else if (validCategories.includes(project.name)) {
+              // 3. If in a dedicated project (e.g. "Study")
               mappedCategory = project.name;
+            } else if (labelCategory) {
+              // 4. Random project but has known label
+              mappedCategory = labelCategory;
             }
           }
+        } else if (labelCategory) {
+           mappedCategory = labelCategory;
         }
         
         const mappedDate = tt.due?.date || null;
@@ -123,6 +151,21 @@ export class TaskStore {
         }
       });
 
+      // 2. Detect tasks completed in Todoist
+      // If a task has a string ID (meaning it is tracked by Todoist) and is not completed locally,
+      // but it is missing from `fetchedTasks` (which only returns active tasks), 
+      // it means it was completed (or deleted) in Todoist. We complete it locally.
+      this.tasks.forEach(localTask => {
+        if (!localTask.completed && typeof localTask.id === 'string') {
+          const existsInTodoist = fetchedTasks.some((tt: TodoistTask) => tt.id === localTask.id.toString());
+          if (!existsInTodoist) {
+            localTask.completed = true;
+            localTask.completedAt = Date.now();
+            hasUpdates = true;
+          }
+        }
+      });
+
       if (hasUpdates) {
         this.saveState();
         window.dispatchEvent(new Event('tasks-updated'));
@@ -138,20 +181,30 @@ export class TaskStore {
 
     if (this.todoistApi) {
       try {
-        if (this.projects.length === 0) await this.fetchProjects();
+        await this.fetchProjectsAndSections(); // Ensure we have the latest projects/sections from Todoist
         
         let targetProjectId: string | undefined = undefined;
+        let targetSectionId: string | undefined = undefined;
         
-        // 1. First, see if there is an exact matching project name in Todoist
+        // Look for exact matching Section (e.g., a "Study" section inside your Inbox)
+        const matchingSection = this.sections.find(s => s.name.toLowerCase() === task.category.toLowerCase());
+        
+        // Look for exact matching Project
         const matchingProj = this.projects.find(p => p.name.toLowerCase() === task.category.toLowerCase());
-        if (matchingProj) {
+        
+        // Find Inbox project fallback
+        const inboxProj = this.projects.find(p => (p as any).isInboxProject || p.name === "Inbox");
+
+        if (matchingSection) {
+          // If a Section called "Study" exists, put it in that specific section!
+          targetSectionId = matchingSection.id;
+          targetProjectId = matchingSection.projectId;
+        } else if (matchingProj) {
+          // If a dedicated Project called "Study" exists, put it there
           targetProjectId = matchingProj.id;
-        } else if (task.category === "General") {
-          // 2. If it's "General" and no "General" project exists, strictly find the Todoist Inbox
-          const inboxProj = this.projects.find(p => (p as any).isInboxProject || p.name === "Inbox");
-          if (inboxProj) {
-             targetProjectId = inboxProj.id;
-          }
+        } else if (inboxProj) {
+          // Fallback to Inbox
+          targetProjectId = inboxProj.id;
         }
 
         const createdTask = await this.todoistApi.addTask({
@@ -159,7 +212,8 @@ export class TaskStore {
           dueString: task.dueDate || undefined,
           priority: task.priority,
           projectId: targetProjectId,
-          labels: [task.category] // Also add it as a label so it shows up in Inbox tags!
+          sectionId: targetSectionId,
+          labels: [task.category] // Still attach label as a fallback sync mechanism
         });
         
         const localTask = this.tasks.find(t => t.id === task.id);
