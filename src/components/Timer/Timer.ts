@@ -1,8 +1,9 @@
 // src/components/Timer/Timer.ts
 import { timerState, subscribeTimer, Mode } from '../../store/TimerStore';
-import { toggleTimer, setMode } from '../../utils/TimerLogic';
-import { formatTime } from '../../utils/TimeFormat'; // Adjust casing if your file is timeFormat.ts
+import { toggleTimer, setMode, finishEarly } from '../../utils/TimerLogic';
+import { formatTime } from '../../utils/TimeFormat';
 import { settingsManager } from '../../store/SettingsManager';
+import { taskStore } from '../../store/TaskStore';
 
 export function initTimerUI() {
   const timeDisplay = document.getElementById('time-display')!;
@@ -26,17 +27,15 @@ export function initTimerUI() {
     if (progressCircle) {
       const totalTime = settingsManager.getDurationForMode(timerState.currentMode);
       const progress = timerState.timeLeft / totalTime;
-      // Progress calculation
       const dashoffset = circumference * (1 - progress);
       progressCircle.style.strokeDashoffset = `${dashoffset}`;
     }
 
-    startPauseBtn.textContent = timerState.isRunning ? 'Pause' : 'Start';
-    startPauseBtn.style.background = timerState.isRunning ? '#f39c12' : '#78b159';
+    startPauseBtn.textContent = timerState.isRunning ? 'Stop' : 'Start';
+    startPauseBtn.style.background = timerState.isRunning ? '#ff6b6b' : '#78b159';
 
     modeLabel.textContent = timerState.currentMode === 'focus' ? 'Focus Session' : `${timerState.currentMode} Break`;
 
-    // Dynamic UI State logic based on Auto-start Settings
     if (settingsManager.autoStartBreaks) {
       if (modeSwitcher) modeSwitcher.style.display = 'none';
     } else {
@@ -45,6 +44,54 @@ export function initTimerUI() {
         const b = btn as HTMLButtonElement;
         b.style.background = b.dataset.mode === timerState.currentMode ? 'rgba(255,255,255,0.8)' : 'transparent';
       });
+    }
+
+    // Check if focused task is completed
+    const focusedTask = taskStore.focusedTaskId ? taskStore.tasks.find(t => t.id === taskStore.focusedTaskId) : null;
+    let finishEarlyBtn = document.getElementById('finish-early-btn');
+    const parentContainer = startPauseBtn.parentElement!;
+    
+    if (timerState.currentMode === 'focus' && timerState.isRunning && focusedTask?.completed) {
+      if (!finishEarlyBtn) {
+        finishEarlyBtn = document.createElement('button');
+        finishEarlyBtn.id = 'finish-early-btn';
+        finishEarlyBtn.textContent = 'Finish early';
+        
+        // Copy base classes so it naturally perfectly matches the Stop button's size
+        finishEarlyBtn.className = startPauseBtn.className; 
+        
+        // Override the background for the pastel blue
+        finishEarlyBtn.style.backgroundColor = '#74b9ff'; 
+        finishEarlyBtn.style.color = 'white';
+        finishEarlyBtn.style.border = 'none';
+        finishEarlyBtn.onclick = finishEarly;
+
+        parentContainer.insertBefore(finishEarlyBtn, startPauseBtn.nextSibling);
+      }
+      
+      // Allow it to flow naturally in the DOM
+      finishEarlyBtn.style.display = ''; 
+      
+      // Clean, non-stretching flex layout for the parent container
+      parentContainer.style.display = 'flex';
+      parentContainer.style.justifyContent = 'center';
+      parentContainer.style.alignItems = 'center'; // Prevents vertical stretching
+      parentContainer.style.gap = '1rem'; // Adds nice spacing between the buttons
+      
+      // Strictly prevent them from stretching horizontally to fill the screen
+      startPauseBtn.style.flex = 'none';
+      finishEarlyBtn.style.flex = 'none';
+      
+    } else {
+      if (finishEarlyBtn) {
+        finishEarlyBtn.style.display = 'none';
+      }
+      // Revert the parent layout when Finish Early is hidden
+      parentContainer.style.display = ''; 
+      parentContainer.style.justifyContent = '';
+      parentContainer.style.alignItems = '';
+      parentContainer.style.gap = '';
+      startPauseBtn.style.flex = '';
     }
   }
 
@@ -59,7 +106,6 @@ export function initTimerUI() {
     });
   });
 
-  // Listen for custom settings events to refresh the UI immediately when updated in settings Modal
   window.addEventListener('settings-changed', () => {
      if(!timerState.isRunning) {
          timerState.timeLeft = settingsManager.getDurationForMode(timerState.currentMode);
@@ -67,7 +113,9 @@ export function initTimerUI() {
      render();
   });
 
-  // Subscribe to store updates and trigger initial render
+  // Re-render timer when tasks change to potentially inject the Finish early button
+  window.addEventListener('tasks-updated', render);
+
   subscribeTimer(render);
   render(); 
 }

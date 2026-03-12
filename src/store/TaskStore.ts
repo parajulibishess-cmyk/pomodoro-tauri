@@ -1,4 +1,10 @@
+// src/store/TaskStore.ts
 import { TodoistApi, Task as TodoistTask } from '@doist/todoist-api-typescript';
+
+interface TodoistProject {
+  id: string;
+  name: string;
+}
 
 export interface Task {
   id: string | number;
@@ -20,6 +26,9 @@ export class TaskStore {
   
   private todoistApi: TodoistApi | null = null;
   private syncInterval: number | null = null;
+  
+  // 3. Use the local interface here
+  private projects: TodoistProject[] = []; 
 
   constructor() {
     this.loadState();
@@ -34,25 +43,52 @@ export class TaskStore {
     }
   }
 
+  async fetchProjects() {
+    if (!this.todoistApi) return;
+    try {
+      const response: any = await this.todoistApi.getProjects();
+      // Ensure we extract the projects array correctly whether it's wrapped or not
+      this.projects = Array.isArray(response) ? response : (response.results || []);
+    } catch (e) {
+      console.error("Failed to fetch Todoist projects", e);
+    }
+  }
+
   startSync() {
     this.syncWithTodoist();
     if (this.syncInterval) clearInterval(this.syncInterval);
-    // Sync automatically every 60 seconds
     this.syncInterval = window.setInterval(() => this.syncWithTodoist(), 60000);
   }
 
   async syncWithTodoist() {
     if (!this.todoistApi) return;
     try {
-      // V3 SDK fix: getTasks() returns an object with a 'results' array
-      const response = await this.todoistApi.getTasks();
+      if (this.projects.length === 0) await this.fetchProjects();
+
+      const response: any = await this.todoistApi.getTasks();
+      const fetchedTasks = Array.isArray(response) ? response : (response.results || []);
       let hasUpdates = false;
 
-      response.results.forEach((tt: TodoistTask) => {
+      fetchedTasks.forEach((tt: TodoistTask) => {
         const existing = this.tasks.find(t => t.id.toString() === tt.id);
         
-        // Map Todoist labels to categories, default to General
-        const mappedCategory = tt.labels && tt.labels.length > 0 ? tt.labels[0] : "General";
+        // Match project ID from Todoist mapping it into standard NookFocus Categories
+        let mappedCategory = "General"; // Default to General for the Inbox
+        
+        if (tt.projectId) {
+          const project = this.projects.find(p => p.id === tt.projectId);
+          if (project) {
+            const validCategories = ["General", "Work", "Study", "Creative", "Reading"];
+            
+            // If the project is literally the Inbox, mark it General. Otherwise, use exact name matching.
+            if ((project as any).isInboxProject || project.name === "Inbox") {
+              mappedCategory = "General";
+            } else if (validCategories.includes(project.name)) {
+              mappedCategory = project.name;
+            }
+          }
+        }
+        
         const mappedDate = tt.due?.date || null;
 
         if (existing) {
@@ -61,7 +97,7 @@ export class TaskStore {
             existing.priority !== tt.priority ||
             existing.dueDate !== mappedDate ||
             existing.category !== mappedCategory ||
-            existing.completed !== tt.checked // V3 SDK fix: 'checked' replaces 'isCompleted'
+            existing.completed !== tt.checked 
           ) {
             existing.text = tt.content;
             existing.priority = tt.priority;
@@ -102,12 +138,30 @@ export class TaskStore {
 
     if (this.todoistApi) {
       try {
+        if (this.projects.length === 0) await this.fetchProjects();
+        
+        let targetProjectId: string | undefined = undefined;
+        
+        // 1. First, see if there is an exact matching project name in Todoist
+        const matchingProj = this.projects.find(p => p.name.toLowerCase() === task.category.toLowerCase());
+        if (matchingProj) {
+          targetProjectId = matchingProj.id;
+        } else if (task.category === "General") {
+          // 2. If it's "General" and no "General" project exists, strictly find the Todoist Inbox
+          const inboxProj = this.projects.find(p => (p as any).isInboxProject || p.name === "Inbox");
+          if (inboxProj) {
+             targetProjectId = inboxProj.id;
+          }
+        }
+
         const createdTask = await this.todoistApi.addTask({
           content: task.text,
           dueString: task.dueDate || undefined,
           priority: task.priority,
-          labels: task.category !== "General" ? [task.category] : undefined
+          projectId: targetProjectId,
+          labels: [task.category] // Also add it as a label so it shows up in Inbox tags!
         });
+        
         const localTask = this.tasks.find(t => t.id === task.id);
         if (localTask) {
           localTask.id = createdTask.id;
@@ -126,6 +180,9 @@ export class TaskStore {
       task.completed = !task.completed;
       task.completedAt = task.completed ? Date.now() : null;
       this.saveState();
+      
+      // Dispatch instantly so Timer module can react for the Finish Early logic
+      window.dispatchEvent(new Event('tasks-updated'));
 
       if (this.todoistApi && typeof task.id === 'string') {
         try {
@@ -151,6 +208,7 @@ export class TaskStore {
       this.tasks = this.tasks.filter(t => t.id !== id);
       if (this.focusedTaskId === id) this.focusedTaskId = null;
       this.saveState();
+      window.dispatchEvent(new Event('tasks-updated'));
 
       if (this.todoistApi && typeof id === 'string') {
         try {
@@ -190,5 +248,4 @@ export class TaskStore {
   }
 }
 
-// Export a singleton instance to be used across the entire app
 export const taskStore = new TaskStore();

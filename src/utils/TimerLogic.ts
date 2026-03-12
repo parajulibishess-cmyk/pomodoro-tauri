@@ -14,7 +14,8 @@ function tick() {
 }
 
 function handleCycleComplete() {
-  pauseTimer();
+  // Use a private pause mechanism so we don't trigger the reset rule
+  pauseTimerForTransition();
   
   if (timerState.currentMode === 'focus') {
     timerState.pomodoroCount++;
@@ -41,6 +42,15 @@ function handleCycleComplete() {
   }
 }
 
+function pauseTimerForTransition() {
+  if (!timerState.isRunning) return;
+  timerState.isRunning = false;
+  if (timerId !== null) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+}
+
 export function startTimer() {
   if (timerState.isRunning) return;
   timerState.isRunning = true;
@@ -50,12 +60,14 @@ export function startTimer() {
 
 export function pauseTimer() {
   if (!timerState.isRunning) return;
-  timerState.isRunning = false;
-  notifyTimer();
-  if (timerId !== null) {
-    clearInterval(timerId);
-    timerId = null;
+  pauseTimerForTransition();
+
+  // No Pausing Rule: Reset on Stop for Focus sessions
+  if (timerState.currentMode === 'focus') {
+    timerState.timeLeft = settingsManager.getDurationForMode('focus');
   }
+
+  notifyTimer();
 }
 
 export function toggleTimer() {
@@ -64,9 +76,22 @@ export function toggleTimer() {
 }
 
 export function setMode(mode: Mode) {
-  pauseTimer();
+  pauseTimerForTransition();
   timerState.currentMode = mode;
   // Always fetch dynamic duration from SettingsManager upon switching modes
   timerState.timeLeft = settingsManager.getDurationForMode(mode);
   notifyTimer();
+}
+
+export function finishEarly() {
+  if (timerState.currentMode === 'focus' && timerState.isRunning) {
+    pauseTimerForTransition(); // Stops the timer under the hood
+    
+    // End the entire session completely and return to the Start Screen 
+    timerState.pomodoroCount = 0; 
+    timerState.currentMode = 'focus';
+    timerState.timeLeft = settingsManager.getDurationForMode('focus');
+    
+    notifyTimer();
+  }
 }
