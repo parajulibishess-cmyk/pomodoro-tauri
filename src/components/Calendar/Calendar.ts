@@ -52,27 +52,27 @@ export function initCalendar() {
 
           <div class="flex w-full h-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
             
-            <div class="h-full flex flex-col p-8 transition-all duration-500 ${selectedDate ? 'w-[60%]' : 'w-full'}">
+            <div class="h-full flex flex-col p-6 sm:p-8 transition-all duration-500 ${selectedDate ? 'w-[70%]' : 'w-full'}">
               
-              <div class="flex justify-between items-center mb-6 px-4">
+              <div class="flex items-center gap-6 mb-6 px-4">
                 <h2 class="text-4xl font-black text-[#78b159] tracking-tight">${currentMonth.format('MMMM YYYY')}</h2>
                 <div class="flex gap-2">
-                  <button id="prev-month-btn" class="bg-white p-3 rounded-2xl shadow-sm text-[#594a42] hover:bg-[#c2f2d0] hover:text-[#78b159] hover:-translate-y-1 transition-all border-2 border-[#f1f2f6]">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  <button id="prev-month-btn" class="bg-white p-2.5 rounded-2xl shadow-sm text-[#594a42] hover:bg-[#c2f2d0] hover:text-[#78b159] hover:-translate-y-1 transition-all border-2 border-[#f1f2f6]">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                   </button>
-                  <button id="next-month-btn" class="bg-white p-3 rounded-2xl shadow-sm text-[#594a42] hover:bg-[#c2f2d0] hover:text-[#78b159] hover:-translate-y-1 transition-all border-2 border-[#f1f2f6]">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  <button id="next-month-btn" class="bg-white p-2.5 rounded-2xl shadow-sm text-[#594a42] hover:bg-[#c2f2d0] hover:text-[#78b159] hover:-translate-y-1 transition-all border-2 border-[#f1f2f6]">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
                 </div>
               </div>
 
-              <div class="grid grid-cols-7 gap-2 sm:gap-4 mb-2">
+              <div class="grid grid-cols-7 gap-2 sm:gap-4 mb-2 px-2">
                 ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `
                   <div class="text-center font-black text-[#a4b0be] uppercase tracking-wider text-xs sm:text-sm">${d}</div>
                 `).join('')}
               </div>
 
-              <div class="grid grid-cols-7 gap-2 sm:gap-4 flex-1 content-start auto-rows-[minmax(70px,_1fr)] overflow-y-auto hide-scrollbar pb-4 pr-2">
+              <div class="grid grid-cols-7 gap-2 sm:gap-4 flex-1 content-start auto-rows-[minmax(60px,_1fr)] overflow-y-auto hide-scrollbar p-2">
                 ${days.map(dateStr => {
                   if (!dateStr) return `<div class="rounded-[24px]"></div>`;
                   
@@ -80,8 +80,8 @@ export function initCalendar() {
                   const isToday = dateStr === dayjs().format('YYYY-MM-DD');
                   const isSelected = dateStr === selectedDate;
                   
-                  // Filter out completed tasks so only active dots show
-                  const dailyTasks = taskStore.tasks.filter(t => t.dueDate === dateStr && !t.completed);
+                  // Now grabs ALL tasks for the day, including completed ones
+                  const dailyTasks = taskStore.tasks.filter(t => t.dueDate === dateStr);
                   
                   let bgClass = 'bg-white';
                   let borderClass = 'border-2 border-[#f1f2f6]';
@@ -98,12 +98,12 @@ export function initCalendar() {
                   }
 
                   return `
-                    <button class="day-btn group relative flex flex-col items-center justify-start pt-2 sm:pt-3 pb-2 px-1 rounded-[20px] sm:rounded-[24px] ${bgClass} ${borderClass} transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-[#78b159]/50 cursor-pointer" data-date="${dateStr}">
+                    <button class="day-btn group relative flex flex-col items-center justify-start pt-2 sm:pt-3 pb-2 px-1 rounded-[20px] sm:rounded-[24px] ${bgClass} ${borderClass} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#78b159]/50 cursor-pointer" data-date="${dateStr}">
                       <span class="font-black text-lg sm:text-xl ${textClass}">${dayNum}</span>
                       
                       <div class="flex flex-wrap gap-1 sm:gap-1.5 mt-auto justify-center w-full px-2 h-[20px] sm:h-[24px] overflow-hidden">
                         ${dailyTasks.map(t => `
-                          <div class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm ${getDotColor(t.priority)}"></div>
+                          <div class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm ${t.completed ? 'bg-[#d1d8e0] opacity-50' : getDotColor(t.priority)}"></div>
                         `).join('')}
                       </div>
                     </button>
@@ -112,7 +112,7 @@ export function initCalendar() {
               </div>
             </div>
 
-            <div class="h-full bg-[#fcfcf7] border-l-[3px] border-[#f1f2f6] transition-all duration-500 ease-in-out flex flex-col relative ${selectedDate ? 'w-[40%] opacity-100 translate-x-0' : 'w-0 opacity-0 translate-x-12 overflow-hidden border-transparent'}">
+            <div class="h-full bg-[#fcfcf7] border-l-[3px] border-[#f1f2f6] transition-all duration-500 ease-in-out flex flex-col relative ${selectedDate ? 'w-[30%] opacity-100 translate-x-0' : 'w-0 opacity-0 translate-x-12 overflow-hidden border-transparent'}">
               ${selectedDate ? renderDayPreview(selectedDate) : ''}
             </div>
           </div>
@@ -163,14 +163,14 @@ export function initCalendar() {
             <div class="bg-white p-4 rounded-3xl border-2 border-[#f1f2f6] shadow-sm flex flex-col gap-2 hover:-translate-y-1 hover:shadow-md transition-all group ${t.completed ? 'opacity-50 grayscale bg-[#fcfcf7]' : ''}">
               <div class="flex justify-between items-start gap-2">
                 <span class="font-bold text-base text-[#594a42] leading-tight ${t.completed ? 'line-through' : ''}">${t.text}</span>
-                <span class="shrink-0 w-3 h-3 rounded-full mt-1 shadow-sm ${getDotColor(t.priority)}"></span>
+                <span class="shrink-0 w-3 h-3 rounded-full mt-1 shadow-sm ${t.completed ? 'bg-[#d1d8e0]' : getDotColor(t.priority)}"></span>
               </div>
               <div class="flex flex-wrap gap-2 items-center mt-1">
                 <span class="text-[10px] font-black uppercase text-[#8e8070] bg-[#e6e2d0]/40 px-2.5 py-1 rounded-xl border border-[#e6e2d0]">${t.category}</span>
                 
                 <span class="text-[10px] font-black uppercase text-[#8e8070] bg-[#f1f2f6] px-2.5 py-1 rounded-xl">P${5 - t.priority}</span>
                 
-                <span class="text-[10px] font-black text-[#fdcb58] bg-[#fff8e1] px-2.5 py-1 rounded-xl">🍅 ${t.estimatedPomos}</span>
+                <span class="text-[10px] font-black text-[#fdcb58] bg-[#fff8e1] px-2.5 py-1 rounded-xl">🍅 ${t.completedPomos}/${t.estimatedPomos}</span>
               </div>
             </div>
           `).join('')}
