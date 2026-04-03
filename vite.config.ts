@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 
-// @ts-expect-error process is a nodejs global
+
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
@@ -11,6 +11,26 @@ export default defineConfig(async () => ({
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
   // 2. tauri expects a fixed port, fail if that port is not available
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor-react";
+            }
+            if (id.includes("@tauri-apps")) {
+              return "vendor-tauri";
+            }
+            if (id.includes("lodash")) {
+              return "vendor-utils";
+            }
+            return "vendor";
+          }
+        }
+      }
+    }
+  },
   server: {
     port: 1420,
     strictPort: true,
@@ -26,5 +46,8 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    
   },
+  
+
 }));

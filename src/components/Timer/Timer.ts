@@ -1,7 +1,7 @@
 // src/components/Timer/Timer.ts
 import { timerState, subscribeTimer, Mode } from '../../store/TimerStore';
-import { toggleTimer, setMode, finishEarly } from '../../utils/TimerLogic';
-import { formatTime } from '../../utils/TimeFormat';
+import { toggleTimer, setMode, finishEarly } from './TimerLogic';
+import { formatTime } from './TimeFormat';
 import { settingsManager } from '../../store/SettingsManager';
 import { taskStore } from '../../store/TaskStore';
 

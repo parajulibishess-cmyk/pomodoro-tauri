@@ -40,7 +40,7 @@ function renderAnalyticsModal(root: HTMLElement) {
   const renderCategoryBars = (dist: Record<string, number>) => {
     const categories = Object.keys(dist);
     if (categories.length === 0) return `<div class="text-sm text-[#8e8070] text-center italic py-4">No categorised sessions yet!</div>`;
-    const max = Math.max(...Object.values(dist));
+    const max = Math.max(...Object.values(dist), 1);
     return categories.map(cat => `
       <div class="flex items-center gap-3 text-sm font-bold text-[#594a42]">
         <span class="w-20 truncate text-right">${cat}</span>
