@@ -16,7 +16,7 @@ export function initAnalytics() {
 }
 
 function renderAnalyticsModal(root: HTMLElement) {
-  const data = loadAnalytics();
+  const data: NookFocusAnalytics = loadAnalytics();
   const DAILY_GOAL_MINUTES = 120; // Example goal, can be wired to settings later
 
   // Format Helpers

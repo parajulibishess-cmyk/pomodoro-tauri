@@ -55,15 +55,28 @@ export function initTimerUI() {
       if (!finishEarlyBtn) {
         finishEarlyBtn = document.createElement('button');
         finishEarlyBtn.id = 'finish-early-btn';
-        finishEarlyBtn.textContent = 'Finish early';
         
-        // Copy base classes so it naturally perfectly matches the Stop button's size
-        finishEarlyBtn.className = startPauseBtn.className; 
+        // Add a nice checkmark SVG and improved typography inside the button
+        finishEarlyBtn.innerHTML = `
+          <div class="flex items-center justify-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span>Finish early</span>
+          </div>
+        `;
         
-        // Override the background for the pastel blue
+        // Add robust base styling + nice transition/hover effects
+        finishEarlyBtn.className = startPauseBtn.className + " shadow-md hover:brightness-105 active:scale-95 transition-all duration-200"; 
+        
+        // Override the background for the pastel blue & set core styles
         finishEarlyBtn.style.backgroundColor = '#74b9ff'; 
         finishEarlyBtn.style.color = 'white';
         finishEarlyBtn.style.border = 'none';
+        finishEarlyBtn.style.padding = '0.75rem 1.25rem';
+        finishEarlyBtn.style.borderRadius = '1rem';
+        finishEarlyBtn.style.fontWeight = '800';
+        
         finishEarlyBtn.onclick = finishEarly;
 
         parentContainer.insertBefore(finishEarlyBtn, startPauseBtn.nextSibling);

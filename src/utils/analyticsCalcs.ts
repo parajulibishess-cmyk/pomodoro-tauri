@@ -149,7 +149,7 @@ export class AnalyticsEngine {
       
       data.core.monthlyVelocity[monthStr] = (data.core.monthlyVelocity[monthStr] || 0) + (session.durationMinutes / 60);
 
-      this.calculateStreaks(data, todayStr);
+      this.calculateStreaks(data);
       this.calculateDailyAverage(data);
 
       if (session.task) {
@@ -242,7 +242,7 @@ export class AnalyticsEngine {
     }
   }
 
-  private static calculateStreaks(data: NookFocusAnalytics, todayStr: string) {
+  private static calculateStreaks(data: NookFocusAnalytics) {
     const dates = Object.keys(data.core.dailyHistory).sort();
     if (dates.length <= 1) {
       data.core.streak = 1;

@@ -89,6 +89,10 @@ export class TaskSectionUI {
   }
 
   render() {
+    // 1. SAVE the current scroll position before we clear the DOM
+    const existingList = this.root.querySelector('ul');
+    const savedScroll = existingList ? existingList.scrollTop : 0;
+
     this.root.innerHTML = '';
     
     const completedCount = this.store.tasks.filter(t => t.completed).length;
@@ -121,6 +125,13 @@ export class TaskSectionUI {
 
     listWrap.appendChild(taskList);
     this.root.appendChild(listWrap);
+
+    // 2. RESTORE the scroll position smoothly after the new elements are in the DOM
+    if (savedScroll > 0) {
+      requestAnimationFrame(() => {
+        taskList.scrollTop = savedScroll;
+      });
+    }
   }
 
   renderForm(): HTMLFormElement {
@@ -174,27 +185,51 @@ export class TaskSectionUI {
       </div>
     `;
 
-    setTimeout(() => {
-      document.getElementById('task-input')?.addEventListener('input', (e) => this.newTask = (e.target as HTMLInputElement).value);
-      document.getElementById('btn-priority')?.addEventListener('click', () => { this.newPriority = this.newPriority >= 4 ? 1 : this.newPriority + 1; this.render(); });
-      document.getElementById('btn-estimate')?.addEventListener('click', () => { this.newEstimate = this.newEstimate >= 10 ? 1 : this.newEstimate + 1; this.render(); });
-      document.getElementById('btn-category')?.addEventListener('click', () => { this.showCategorySelect = !this.showCategorySelect; this.showCalendar = false; this.render(); });
+    // Attaching listeners SYNCHRONOUSLY directly to the created form elements
+    // This entirely prevents the double-firing / race condition bug.
+    const taskInput = form.querySelector('#task-input') as HTMLInputElement;
+    const btnPriority = form.querySelector('#btn-priority') as HTMLButtonElement;
+    const btnEstimate = form.querySelector('#btn-estimate') as HTMLButtonElement;
+    const btnCategory = form.querySelector('#btn-category') as HTMLButtonElement;
+    const btnCalendar = form.querySelector('#btn-calendar') as HTMLButtonElement;
+    const dropdownCalendar = form.querySelector('#dropdown-calendar') as HTMLElement;
 
-      document.querySelectorAll('.btn-select-category').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const cat = (e.currentTarget as HTMLElement).getAttribute('data-category');
-          if (cat) this.newCategory = cat;
-          this.showCategorySelect = false;
-          this.render();
-        });
+    taskInput?.addEventListener('input', (e) => this.newTask = (e.target as HTMLInputElement).value);
+    
+    btnPriority?.addEventListener('click', () => { 
+      this.newPriority = this.newPriority >= 4 ? 1 : this.newPriority + 1; 
+      this.render(); 
+    });
+    
+    btnEstimate?.addEventListener('click', () => { 
+      this.newEstimate = this.newEstimate >= 10 ? 1 : this.newEstimate + 1; 
+      this.render(); 
+    });
+    
+    btnCategory?.addEventListener('click', () => { 
+      this.showCategorySelect = !this.showCategorySelect; 
+      this.showCalendar = false; 
+      this.render(); 
+    });
+
+    form.querySelectorAll('.btn-select-category').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const cat = (e.currentTarget as HTMLElement).getAttribute('data-category');
+        if (cat) this.newCategory = cat;
+        this.showCategorySelect = false;
+        this.render();
       });
+    });
 
-      document.getElementById('btn-calendar')?.addEventListener('click', () => { this.showCalendar = !this.showCalendar; this.showCategorySelect = false; this.render(); });
+    btnCalendar?.addEventListener('click', () => { 
+      this.showCalendar = !this.showCalendar; 
+      this.showCategorySelect = false; 
+      this.render(); 
+    });
 
-      if (this.showCalendar) {
-        document.getElementById('dropdown-calendar')?.appendChild(this.renderCalendar());
-      }
-    }, 0);
+    if (this.showCalendar && dropdownCalendar) {
+      dropdownCalendar.appendChild(this.renderCalendar());
+    }
 
     return form;
   }
