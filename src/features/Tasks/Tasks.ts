@@ -31,6 +31,7 @@ export class TaskSectionUI {
   
   showCalendar: boolean = false;
   showCategorySelect: boolean = false;
+  editingNoteId: number | null = null;
 
   constructor(rootId: string) {
     const rootEl = document.getElementById(rootId);
@@ -236,6 +237,7 @@ export class TaskSectionUI {
   renderTaskItem(task: Task): HTMLElement {
     const isFocused = this.store.focusedTaskId === task.id;
     const isOverdue = !task.completed && this.checkOverdue(task.dueDate);
+    const isEditingNote = this.editingNoteId === task.id;
     
     let opacityClass = task.completed ? 'opacity-60 bg-[#f1f2f6] border-transparent' : 'bg-white opacity-100 border-[#f1f2f6] hover:border-[#78b159] hover:shadow-md';
     if (isOverdue && !task.completed) opacityClass = 'bg-[#ff6b6b]/5 border-[#ff6b6b]/30 hover:border-[#ff6b6b]';
@@ -243,12 +245,21 @@ export class TaskSectionUI {
     const div = document.createElement('li');
     div.className = `group flex items-start gap-4 p-4 rounded-3xl border-2 transition-all duration-300 ${opacityClass}`;
 
+    // Note UI generation
+    const noteHtml = isEditingNote
+      ? `<textarea class="task-note-input w-full mt-2 p-2.5 rounded-xl bg-white/70 border-2 border-[#78b159]/60 focus:border-[#78b159] text-xs font-medium text-[#594a42] outline-none resize-none shadow-inner transition-all" placeholder="Jot down a quick note... (Press Esc to cancel, click away to save)" rows="2">${task.note || ''}</textarea>`
+      : (task.note ? `
+          <div class="mt-2 text-[11px] text-[#8e8070] bg-[#f1f2f6]/50 p-2.5 rounded-xl border border-[#e6e2d0] leading-relaxed flex items-start gap-2 shadow-sm">
+             <span class="mt-0.5 opacity-70">📝</span>
+             <span class="whitespace-pre-wrap">${task.note}</span>
+          </div>` : '');
+
     div.innerHTML = `
-      <button class="btn-toggle-task mt-0.5 w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-colors ${task.completed ? 'bg-[#78b159] border-[#78b159]' : 'border-[#d1d8e0] bg-white'} active:scale-90">
+      <button class="btn-toggle-task shrink-0 mt-0.5 w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-colors ${task.completed ? 'bg-[#78b159] border-[#78b159]' : 'border-[#d1d8e0] bg-white'} active:scale-90">
         ${task.completed ? `<span class="text-white">${icons.CheckSquare}</span>` : ''}
       </button>
       
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 task-content-area cursor-pointer rounded-xl transition-colors hover:bg-[#f1f2f6]/50 p-1 -ml-1 -mt-1" title="Double-click to add or edit note">
         <div class="flex items-center gap-2">
           <span class="font-bold text-base ${task.completed ? 'line-through text-[#a4b0be]' : (isOverdue ? 'text-[#ff6b6b]' : 'text-[#594a42]')}">
             ${task.text}
@@ -262,9 +273,10 @@ export class TaskSectionUI {
           <span class="text-[10px] font-bold text-[#fdcb58] bg-[#fff8e1] px-2 py-1 rounded-lg border border-[#ffe082]/50">🍅 ${task.completedPomos}/${task.estimatedPomos}</span>
           ${task.dueDate ? `<span class="text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center gap-1 ${isOverdue && !task.completed ? 'bg-[#ff6b6b]/10 text-[#ff6b6b] border-[#ff6b6b]/20' : 'text-[#78b159] bg-[#f0fff4] border-[#78b159]/20'}">${icons.CalendarDays} ${new Date(task.dueDate + 'T00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>` : ''}
         </div>
+        ${noteHtml}
       </div>
       
-      <div class="flex gap-1">
+      <div class="flex gap-1 shrink-0">
         <button class="btn-focus-task p-2 rounded-xl transition-colors ${isFocused ? 'bg-[#78b159] text-white shadow-md' : 'text-[#a4b0be] hover:bg-[#f1f2f6]'} hover:scale-110">
           ${icons.Target}
         </button>
@@ -274,9 +286,50 @@ export class TaskSectionUI {
       </div>
     `;
 
+    // Standard Buttons
     div.querySelector('.btn-toggle-task')?.addEventListener('click', () => { this.store.toggleTask(task.id); this.render(); });
     div.querySelector('.btn-focus-task')?.addEventListener('click', () => { this.store.focusedTaskId = this.store.focusedTaskId === task.id ? null : task.id; this.render(); });
     div.querySelector('.btn-delete-task')?.addEventListener('click', () => { this.store.deleteTask(task.id); this.render(); });
+
+    // Double Click Note Logic
+    const contentArea = div.querySelector('.task-content-area');
+    contentArea?.addEventListener('dblclick', (e) => {
+      // Prevent triggering if they double click the textarea itself
+      if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
+      
+      this.editingNoteId = task.id;
+      this.render();
+      
+      // Auto-focus the text area and place cursor at the end
+      setTimeout(() => {
+        const ta = this.root.querySelector('.task-note-input') as HTMLTextAreaElement;
+        if (ta) { 
+          ta.focus(); 
+          ta.selectionStart = ta.value.length; 
+        }
+      }, 0);
+    });
+
+    // Save/Cancel Note Logic
+    if (isEditingNote) {
+      const textarea = div.querySelector('.task-note-input') as HTMLTextAreaElement;
+      
+      // Save on click away
+      textarea?.addEventListener('blur', () => {
+        const val = textarea.value.trim();
+        this.store.updateTaskNote(task.id, val);
+        this.editingNoteId = null;
+        this.render();
+      });
+
+      // Cancel on Escape
+      textarea?.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.editingNoteId = null;
+          this.render(); // Re-render without saving
+        }
+      });
+    }
 
     return div;
   }

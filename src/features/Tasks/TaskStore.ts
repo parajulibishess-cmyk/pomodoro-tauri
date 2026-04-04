@@ -11,6 +11,7 @@ export interface Task {
   completed: boolean;
   completedAt: number | null;
   createdAt: number;
+  note?: string;
 }
 
 class TaskStore {
@@ -44,10 +45,6 @@ class TaskStore {
       task.completed = !task.completed;
       task.completedAt = task.completed ? Date.now() : null;
       
-      // Defocus if the completed task was the currently focused one
-      if (task.completed && this.focusedTaskId === id) {
-        this.focusedTaskId = null;
-      }
       this.save();
     }
   }
@@ -58,6 +55,14 @@ class TaskStore {
       this.focusedTaskId = null;
     }
     this.save();
+  }
+  
+  updateTaskNote(id: number, note: string) {
+    const task = this.tasks.find(t => t.id === id);
+    if (task) {
+      task.note = note;
+      this.save();
+    }
   }
 
   getSortedTasks() {

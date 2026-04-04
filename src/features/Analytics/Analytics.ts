@@ -122,7 +122,7 @@ function renderAnalyticsModal(root: HTMLElement) {
             
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="bg-white/60 rounded-3xl p-5 border-2 border-white/50 shadow-sm flex flex-col items-center justify-center text-center">
-                <span class="text-xs font-bold text-[#8e8070] uppercase tracking-wider mb-1">Total Focus</span>
+                <span class="text-xs font-bold text-[#8e8070] uppercase tracking-wider mb-1">Total Pomodoro Time</span>
                 <span class="text-3xl font-black text-[#78b159] drop-shadow-sm">${formatTime(data.core.minutes)}</span>
                 <span class="text-xs font-bold text-[#8e8070] mt-2">Avg: ${formatTime(data.core.dailyAverage)}/day</span>
               </div>
@@ -163,7 +163,7 @@ function renderAnalyticsModal(root: HTMLElement) {
 
                 <div class="bg-white/60 rounded-3xl p-6 border-2 border-white/50 shadow-sm grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <span class="block text-[10px] font-bold text-[#8e8070] uppercase">Focus</span>
+                    <span class="block text-[10px] font-bold text-[#8e8070] uppercase">Pomodoros</span>
                     <span class="block text-xl font-black text-[#78b159]">${data.core.sessionCounts.focus}</span>
                   </div>
                   <div>
@@ -178,7 +178,7 @@ function renderAnalyticsModal(root: HTMLElement) {
               </div>
 
               <div class="bg-white/60 rounded-3xl p-6 border-2 border-white/50 shadow-sm flex flex-col">
-                <span class="text-sm font-bold text-[#8e8070] uppercase tracking-wider mb-6 block">Focus Distribution</span>
+                <span class="text-sm font-bold text-[#8e8070] uppercase tracking-wider mb-6 block">Pomodoro Distribution</span>
                 <div class="flex flex-col gap-4 overflow-y-auto flex-1 pr-2 hide-scrollbar">
                   ${renderCategoryBars(data.tasks.categoryDist)}
                 </div>

@@ -34,7 +34,7 @@ export function initTimerUI() {
     startPauseBtn.textContent = timerState.isRunning ? 'Stop' : 'Start';
     startPauseBtn.style.background = timerState.isRunning ? '#ff6b6b' : '#78b159';
 
-    modeLabel.textContent = timerState.currentMode === 'focus' ? 'Focus Session' : `${timerState.currentMode} Break`;
+    modeLabel.textContent = timerState.currentMode === 'focus' ? 'Active Pomodoro' : `${timerState.currentMode} Break`;
 
     if (settingsManager.autoStartBreaks) {
       if (modeSwitcher) modeSwitcher.style.display = 'none';

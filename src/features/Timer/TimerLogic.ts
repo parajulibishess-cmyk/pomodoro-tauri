@@ -2,6 +2,7 @@
 import { timerState, notifyTimer, Mode } from './TimerStore.ts';
 import { settingsManager } from '../Settings/SettingsManager.ts';
 import { AnalyticsEngine } from '../Analytics/AnalyticsEngine.ts';
+import { taskStore } from '../Tasks/TaskStore.ts';
 
 let timerId: number | null = null;
 
@@ -26,7 +27,30 @@ function tick() {
 }
 
 function handleCycleComplete() {
-  // 1. Record the successfully completed session before transitioning
+  let sessionTaskData = undefined;
+
+  // 1. Process Task Analytics & Fix Visual Bug BEFORE transitioning
+  if (timerState.currentMode === 'focus' && taskStore.focusedTaskId !== null) {
+    const task = taskStore.tasks.find(t => t.id === taskStore.focusedTaskId);
+    if (task) {
+      // Fix visual bug: increment the pomodoro count on the task
+      task.completedPomos += 1;
+      taskStore.save(); // Saves and dispatches 'tasks-updated' to refresh the UI
+      
+      // Format the data perfectly for AnalyticsEngine constraints
+      sessionTaskData = {
+        id: task.id.toString(),
+        category: task.category,
+        priority: `P${task.priority}`, 
+        estimatedPomodoros: task.estimatedPomos,
+        actualPomodoros: task.completedPomos,
+        justCompleted: task.completed, 
+        dueDate: task.dueDate ? new Date(task.dueDate) : undefined
+      };
+    }
+  }
+
+  // 2. Record the successfully completed session
   if (sessionStartTime) {
     const now = new Date();
     const elapsedMs = now.getTime() - sessionStartTime.getTime();
@@ -38,15 +62,14 @@ function handleCycleComplete() {
       completed: true,
       startTime: sessionStartTime,
       endTime: now,
-      pauses: sessionPauses
+      pauses: sessionPauses,
+      task: sessionTaskData 
     });
     
-    // Reset analytics state for the next session
     sessionStartTime = null;
     sessionPauses = [];
   }
 
-  // Use a private pause mechanism so we don't trigger the reset rule
   pauseTimerForTransition();
   
   if (timerState.currentMode === 'focus') {
@@ -174,7 +197,36 @@ export function setMode(mode: Mode) {
 
 export function finishEarly() {
   if (timerState.currentMode === 'focus' && timerState.isRunning) {
-    // Handle the early abandonment analytics
+    
+    let sessionTaskData = undefined;
+    let isTaskCompletedSuccess = false;
+
+    // 1. Check if they are finishing early because the task is done
+    if (taskStore.focusedTaskId !== null) {
+      const task = taskStore.tasks.find(t => t.id === taskStore.focusedTaskId);
+      if (task && task.completed) {
+         isTaskCompletedSuccess = true;
+         // Increment completed pomos. 1 Successful early finish = 1 Pomodoro
+         task.completedPomos += 1; 
+         taskStore.save();
+
+         sessionTaskData = {
+          id: task.id.toString(),
+            category: task.category,
+            priority: `P${task.priority}`,
+            estimatedPomodoros: task.estimatedPomos,
+            actualPomodoros: task.completedPomos,
+            justCompleted: true, // Trigger Estimation Accuracy logic
+            dueDate: task.dueDate ? new Date(task.dueDate) : undefined
+         };
+
+         // Clean up: Defocus the task now that we've successfully finished early
+         taskStore.focusedTaskId = null;
+         taskStore.save();
+      }
+    }
+
+    // 2. Handle analytics logic
     if (sessionStartTime) {
       const now = new Date();
       const elapsedMs = now.getTime() - sessionStartTime.getTime();
@@ -184,10 +236,12 @@ export function finishEarly() {
         AnalyticsEngine.recordSession({
           type: 'focus',
           durationMinutes: elapsedMinutes,
-          completed: false,
+          // If task is completed, it's a SUCCESS (true), otherwise it's an abandonment (false)
+          completed: isTaskCompletedSuccess ? true : false, 
           startTime: sessionStartTime,
           endTime: now,
-          pauses: sessionPauses
+          pauses: sessionPauses,
+          task: sessionTaskData
         });
       }
       sessionStartTime = null;
