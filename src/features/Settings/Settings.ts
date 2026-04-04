@@ -1,5 +1,5 @@
-// src/components/Settings/Settings.ts
-import { settingsManager } from '../../store/SettingsManager';
+// src/features/Settings/Settings.ts
+import { settingsManager } from './SettingsManager';
 
 // Define Types
 interface BgPreset {
@@ -40,6 +40,12 @@ export function initSettings() {
   if (!ls.getItem('nook_bg_opacity')) ls.setItem('nook_bg_opacity', '0.4');
   if (!ls.getItem('nook_bg_presets')) ls.setItem('nook_bg_presets', JSON.stringify(DEFAULT_PRESETS));
 
+  function getYouTubeId(url: string) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
   function applyBackground() {
     const bgUrl = ls.getItem('nook_bg_url');
     const bgOpacity = ls.getItem('nook_bg_opacity') || '0.4';
@@ -47,8 +53,11 @@ export function initSettings() {
     const bgEl = document.getElementById('dynamic-bg');
     const overlayEl = document.getElementById('dynamic-bg-overlay');
     
-    if (bgEl && overlayEl) {
-      bgEl.style.backgroundImage = `url('${bgUrl}')`;
+    if (bgEl && overlayEl && bgUrl) {
+      const isYoutube = bgUrl.includes('youtube.com') || bgUrl.includes('youtu.be');
+      const ytId = isYoutube ? getYouTubeId(bgUrl) : null;
+      const finalUrl = ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : bgUrl;
+      bgEl.style.backgroundImage = `url('${finalUrl}')`;
       overlayEl.style.opacity = bgOpacity; 
     }
   }
@@ -215,12 +224,6 @@ export function initSettings() {
     `;
   }
 
-  function getYouTubeId(url: string) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }
-
   // --- Logic & Bindings ---
   
   // Tab Switching
@@ -297,7 +300,8 @@ export function initSettings() {
     const el = document.getElementById(`inp-${type}`) as HTMLInputElement | null;
     if (el) {
       el.addEventListener('change', (e) => {
-        ls.setItem(`${type}Duration`, (e.target as HTMLInputElement).value);
+        const key = type === 'focus' ? 'focusDuration' : `${type}BreakDuration`;
+        ls.setItem(key, (e.target as HTMLInputElement).value);
         window.dispatchEvent(new Event('settings-changed')); 
       });
     }
@@ -307,9 +311,10 @@ export function initSettings() {
   const lblDaily = document.getElementById('lbl-daily');
   if (slDaily && lblDaily) {
     const updateDaily = () => {
-      const val = parseInt(slDaily.value);
+      const val = parseInt(slDaily.value, 10);
       lblDaily.innerText = `${Math.floor(val / 60)}h ${val % 60}m`;
       ls.setItem('dailyFocusGoal', val.toString());
+      window.dispatchEvent(new Event('settings-changed')); 
     };
     slDaily.addEventListener('input', updateDaily); updateDaily();
   }
@@ -320,6 +325,7 @@ export function initSettings() {
     const updateBreath = () => {
       lblBreath.innerText = `${slBreath.value}s`;
       ls.setItem('breathingDuration', slBreath.value);
+      window.dispatchEvent(new Event('settings-changed')); 
     };
     slBreath.addEventListener('input', updateBreath); updateBreath();
   }
@@ -428,7 +434,7 @@ export function initSettings() {
 
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const idx = parseInt((e.currentTarget as HTMLElement).getAttribute('data-idx')!);
+        const idx = parseInt((e.currentTarget as HTMLElement).getAttribute('data-idx')!, 10);
         presets.splice(idx, 1);
         ls.setItem('nook_bg_presets', JSON.stringify(presets));
         renderGrid();

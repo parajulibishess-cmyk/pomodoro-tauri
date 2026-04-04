@@ -1,7 +1,7 @@
-// src/components/Timer/TimerLogic.ts
-import { timerState, notifyTimer, Mode } from '../../store/TimerStore';
-import { settingsManager } from '../../store/SettingsManager';
-import { AnalyticsEngine } from '../Analytics/AnalyticsEngine'; // Imported from the new feature location
+// src/features/Timer/TimerLogic.ts
+import { timerState, notifyTimer, Mode } from './TimerStore';
+import { settingsManager } from '../Settings/SettingsManager';
+import { AnalyticsEngine } from '../Analytics/AnalyticsEngine';
 
 let timerId: number | null = null;
 
@@ -28,14 +28,16 @@ function tick() {
 function handleCycleComplete() {
   // 1. Record the successfully completed session before transitioning
   if (sessionStartTime) {
-    const durationMinutes = Math.round(settingsManager.getDurationForMode(timerState.currentMode) / 60);
+    const now = new Date();
+    const elapsedMs = now.getTime() - sessionStartTime.getTime();
+    const durationMinutes = Math.max(1, Math.round(elapsedMs / 60000));
     
     AnalyticsEngine.recordSession({
       type: mapModeForAnalytics(timerState.currentMode),
       durationMinutes: durationMinutes,
       completed: true,
       startTime: sessionStartTime,
-      endTime: new Date(),
+      endTime: now,
       pauses: sessionPauses
     });
     
@@ -76,7 +78,7 @@ function pauseTimerForTransition() {
   if (!timerState.isRunning) return;
   timerState.isRunning = false;
   if (timerId !== null) {
-    clearInterval(timerId);
+    window.clearInterval(timerId);
     timerId = null;
   }
 }
@@ -140,21 +142,23 @@ export function toggleTimer() {
 }
 
 export function setMode(mode: Mode) {
-  // If user switches modes while running, record the current session as abandoned
-  if (sessionStartTime && timerState.isRunning) {
-    const now = new Date();
-    const elapsedMs = now.getTime() - sessionStartTime.getTime();
-    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+  // If user switches modes, record the current session as abandoned
+  if (sessionStartTime) {
+    if (timerState.isRunning) {
+      const now = new Date();
+      const elapsedMs = now.getTime() - sessionStartTime.getTime();
+      const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
-    if (elapsedMinutes > 0) {
-      AnalyticsEngine.recordSession({
-        type: mapModeForAnalytics(timerState.currentMode),
-        durationMinutes: elapsedMinutes,
-        completed: false,
-        startTime: sessionStartTime,
-        endTime: now,
-        pauses: sessionPauses
-      });
+      if (elapsedMinutes > 0) {
+        AnalyticsEngine.recordSession({
+          type: mapModeForAnalytics(timerState.currentMode),
+          durationMinutes: elapsedMinutes,
+          completed: false,
+          startTime: sessionStartTime,
+          endTime: now,
+          pauses: sessionPauses
+        });
+      }
     }
     
     sessionStartTime = null;
