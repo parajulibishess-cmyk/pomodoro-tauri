@@ -11,6 +11,8 @@
   --color-yellow: #fdcb58;
   --color-blue: #54a0ff;
   --color-red: #ff6b6b;
+  --glass-opacity: 0.6;
+  --glass-border: rgba(255, 255, 255, 0.8);
 }
 
 body {
@@ -136,4 +138,10 @@ input[type=range].custom-slider::-webkit-slider-thumb {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
+}
+.dynamic-glass {
+  background-color: rgba(255, 255, 255, var(--glass-opacity));
+  backdrop-filter: blur(16px);
+  border-color: var(--glass-border) !important;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }

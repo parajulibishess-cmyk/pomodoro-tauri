@@ -1,6 +1,46 @@
 // src/features/Settings/SettingsManager.ts
+export interface NookSettings {
+  focusDuration: number;
+  shortBreakDuration: number;
+  longBreakDuration: number;
+  longBreakInterval: number;
+  autoStartBreaks: boolean;
+  glassOpacity: number;
+}
 
+const DEFAULT_SETTINGS: NookSettings = {
+  focusDuration: 25,
+  shortBreakDuration: 5,
+  longBreakDuration: 15,
+  longBreakInterval: 4,
+  autoStartBreaks: false,
+  glassOpacity: 0.6 
+};
 export class SettingsManager {
+
+  settings: NookSettings = { ...DEFAULT_SETTINGS };
+
+  constructor() {
+    this.load();
+  }
+
+  applyTheme() {
+    document.documentElement.style.setProperty('--glass-opacity', this.settings.glassOpacity.toString());
+  }
+
+  load() {
+    const saved = localStorage.getItem('nook_settings');
+    if (saved) {
+      this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    }
+    this.applyTheme();
+  }
+
+  save() {
+    localStorage.setItem('nook_settings', JSON.stringify(this.settings));
+    this.applyTheme(); // Apply immediately on save
+    window.dispatchEvent(new Event('settings-changed'));
+  }
   get focusDuration(): number { 
     return parseInt(localStorage.getItem('focusDuration') || '25', 10); 
   }

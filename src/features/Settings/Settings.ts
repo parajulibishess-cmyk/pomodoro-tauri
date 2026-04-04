@@ -176,7 +176,7 @@ export function initSettings() {
             </section>
           </div>
 
-          <div id="content-atmosphere" class="hidden space-y-10">
+          <div id="content-atmosphere" class="hidden space-y-8">
             <section>
               <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-[#594a42]">Backgrounds</h3>
@@ -187,10 +187,19 @@ export function initSettings() {
 
             <section class="bg-white p-5 rounded-3xl shadow-sm">
               <div class="flex justify-between items-center mb-3">
-                <span class="font-bold text-[#594a42]">Overlay Opacity</span>
+                <span class="font-bold text-[#594a42]">Background Overlay Darkening</span>
                 <span id="lbl-opacity" class="font-bold text-[#fdcb58]"></span>
               </div>
               <input type="range" id="sl-opacity" min="0" max="0.95" step="0.05" value="${ls.getItem('nook_bg_opacity')}" class="custom-slider w-full" style="--thumb-color: #fdcb58;">
+            </section>
+
+            <section class="bg-white p-5 rounded-3xl shadow-sm border border-[#5bc0eb]/20">
+              <div class="flex justify-between items-center mb-3">
+                <span class="font-bold text-[#594a42]">UI Glass Transparency</span>
+                <span id="lbl-glass-opacity" class="font-bold text-[#5bc0eb]"></span>
+              </div>
+              <input type="range" id="sl-glass-opacity" min="0.1" max="1" step="0.05" value="${settingsManager.settings.glassOpacity}" class="custom-slider w-full" style="--thumb-color: #5bc0eb;">
+              <p class="text-xs font-bold text-[#8e8070] mt-3">Controls how transparent the main panels (Timer, Tasks, etc) are.</p>
             </section>
 
             <section class="bg-white p-6 rounded-3xl shadow-sm border border-[#594a42]/10">
@@ -382,6 +391,8 @@ export function initSettings() {
   });
 
   // --- Atmosphere Interactions ---
+  
+  // 1. Background Overlay Opacity
   const slOpacity = document.getElementById('sl-opacity') as HTMLInputElement | null;
   const lblOpacity = document.getElementById('lbl-opacity');
   if (slOpacity && lblOpacity) {
@@ -391,6 +402,28 @@ export function initSettings() {
       applyBackground(); 
     };
     slOpacity.addEventListener('input', updateOpacity); updateOpacity();
+  }
+
+  // 2. Window Glass Opacity (Dynamic Global Var)
+  const slGlassOpacity = document.getElementById('sl-glass-opacity') as HTMLInputElement | null;
+  const lblGlassOpacity = document.getElementById('lbl-glass-opacity');
+  if (slGlassOpacity && lblGlassOpacity) {
+    const updateGlassOpacity = () => {
+      const val = parseFloat(slGlassOpacity.value);
+      lblGlassOpacity.innerText = `${Math.round(val * 100)}%`;
+      
+      // Update background opacity
+      document.documentElement.style.setProperty('--glass-opacity', val.toString());
+      
+      // NEW: Make colors/borders bolder when the panel is more opaque
+      const borderAlpha = Math.min(1.0, val + 0.3);
+      document.documentElement.style.setProperty('--glass-border', `rgba(255, 255, 255, ${borderAlpha})`);
+      
+      settingsManager.settings.glassOpacity = val;
+      settingsManager.save();
+    };
+    slGlassOpacity.addEventListener('input', updateGlassOpacity); 
+    updateGlassOpacity();
   }
 
   // Grid Rendering

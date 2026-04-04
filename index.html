@@ -13,9 +13,11 @@
     
     <div id="dynamic-bg" class="fixed inset-0 z-[-2] bg-cover bg-center transition-all duration-1000"></div>
     <div id="dynamic-bg-overlay" class="fixed inset-0 z-[-1] bg-[#fcfcf7] transition-all duration-1000"></div>
+    
     <div id="app-container" class="w-full max-w-[1600px] h-full p-[24px] flex flex-col gap-[32px] mx-auto box-border">
       
       <header class="flex justify-between items-center min-h-[70px] h-[10vh] w-full mb-2 shrink-0">
+        
         <div class="flex items-center gap-5">
           <div class="bg-white/90 p-3.5 rounded-3xl shadow-sm border-2 border-white/50 backdrop-blur-md -rotate-3 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#78b159" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
@@ -27,6 +29,11 @@
         </div>
 
         <div class="flex gap-4">
+          <button id="top-sounds-btn" class="flex items-center gap-2 bg-white/60 hover:bg-white rounded-2xl shadow-sm border-2 border-white/50 text-[#594a42] font-bold px-6 py-3 hover:scale-105 active:scale-95 transition-all cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            Sounds
+          </button>
+          
           <button id="top-analytics-btn" class="flex items-center gap-2 bg-white/60 hover:bg-white rounded-2xl shadow-sm border-2 border-white/50 text-[#594a42] font-bold px-6 py-3 hover:scale-105 active:scale-95 transition-all cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             Analytics
@@ -41,7 +48,7 @@
 
       <div id="main-content-wrapper" style="display: grid; grid-template-columns: 3fr 2fr; gap: 32px; align-items: stretch; flex: 1; min-height: 0;">
         
-        <main id="timer-section" class="nook-glass flex flex-col items-center justify-center relative w-full h-full border-[4px] border-white/50 shadow-2xl rounded-[32px]">
+        <main id="timer-section" class="dynamic-glass flex flex-col items-center justify-center relative w-full h-full border-[4px] border-white/50 shadow-2xl rounded-[32px]">
           <div id="mode-switcher" style="display: flex; gap: 8px; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 99px; margin-bottom: 20px; z-index: 20; border: 2px solid rgba(255,255,255,0.5);">
             <button data-mode="focus" class="mode-btn active" style="padding: 12px 24px; border-radius: 99px; border: none; font-weight: 900; cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text);">Focus</button>
             <button data-mode="short" class="mode-btn" style="padding: 12px 24px; border-radius: 99px; border: none; background: transparent; font-weight: 900; cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-muted);">Short</button>
@@ -58,7 +65,7 @@
             
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; width: 100%;">
               <h1 id="time-display" style="font-size: 3.5rem; font-weight: 900; margin: 0; font-family: monospace; color: var(--color-text); transition: opacity 0.4s ease; line-height: 1;">25:00</h1>
-              <span id="mode-label" style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; background: rgba(89, 74, 66, 0.1); padding: 4px 12px; border-radius: 99px; color: var(--color-text); margin-top: 8px;">Focus Session</span>
+              <span id="mode-label" style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; background: rgba(89, 74, 66, 0.1); padding: 4px 12px; border-radius: 99px; color: var(--color-text); margin-top: 8px;">Active Pomodoro</span>
             </div>
 
             <div id="active-task-pill" style="opacity: 0; pointer-events: none; position: absolute; bottom: -45px; white-space: nowrap; z-index: 30; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 99px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 2px solid rgba(255,255,255,0.8); backdrop-filter: blur(5px); color: var(--color-text); display: flex; align-items: center; gap: 8px; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(10px);">
@@ -72,13 +79,14 @@
           </div>
         </main>
 
-        <aside id="task-section-root" class="hide-scrollbar flex flex-col gap-[16px] h-full w-full overflow-hidden nook-glass p-6 border-[4px] border-white/50 shadow-2xl rounded-[32px]">
+        <aside id="task-section-root" class="dynamic-glass hide-scrollbar flex flex-col gap-[16px] h-full w-full overflow-hidden p-6 border-[4px] shadow-2xl rounded-[32px]">
         </aside>
 
       </div>
     </div>
     
     <div id="analytics-modal-root"></div>
+    <div id="sounds-modal-root"></div>
     
     <script type="module" src="/src/main.ts"></script>
   </body>
