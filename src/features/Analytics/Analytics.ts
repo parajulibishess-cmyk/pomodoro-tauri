@@ -1,5 +1,6 @@
 // src/components/Analytics/Analytics.ts
-import { loadAnalytics, NookFocusAnalytics } from '../../utils/AnalyticsCalcs';
+import { loadAnalytics } from './AnalyticsStorage.ts';
+import { NookFocusAnalytics } from './AnalyticsTypes.ts';
 
 export function initAnalytics() {
   const analyticsBtn = document.getElementById('top-analytics-btn');

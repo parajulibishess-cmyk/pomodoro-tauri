@@ -1,9 +1,9 @@
 // src/features/Timer/Timer.ts
-import { timerState, subscribeTimer, Mode } from './TimerStore';
-import { toggleTimer, setMode, finishEarly } from './TimerLogic';
-import { formatTime } from './TimeFormat';
-import { settingsManager } from '../Settings/SettingsManager';
-import { taskStore } from '../Tasks/TaskStore';
+import { timerState, subscribeTimer, Mode } from './TimerStore.ts';
+import { toggleTimer, setMode, finishEarly } from './TimerLogic.ts';
+import { formatTime } from './TimeFormat.ts';
+import { settingsManager } from '../Settings/SettingsManager.ts';
+import { taskStore } from '../Tasks/TaskStore.ts';
 
 export function initTimerUI() {
   const timeDisplay = document.getElementById('time-display')!;

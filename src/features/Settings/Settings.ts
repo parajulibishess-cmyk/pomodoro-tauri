@@ -1,5 +1,5 @@
 // src/features/Settings/Settings.ts
-import { settingsManager } from './SettingsManager';
+import { settingsManager } from './SettingsManager.ts';
 
 // Define Types
 interface BgPreset {

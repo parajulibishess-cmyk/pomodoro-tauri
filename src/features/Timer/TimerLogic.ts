@@ -1,7 +1,7 @@
 // src/features/Timer/TimerLogic.ts
-import { timerState, notifyTimer, Mode } from './TimerStore';
-import { settingsManager } from '../Settings/SettingsManager';
-import { AnalyticsEngine } from '../Analytics/AnalyticsEngine';
+import { timerState, notifyTimer, Mode } from './TimerStore.ts';
+import { settingsManager } from '../Settings/SettingsManager.ts';
+import { AnalyticsEngine } from '../Analytics/AnalyticsEngine.ts';
 
 let timerId: number | null = null;
 
