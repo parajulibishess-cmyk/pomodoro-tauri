@@ -67,7 +67,6 @@ pub mod commands {
     #[tauri::command]
     pub async fn get_youtube_stream_url(url: String) -> Result<String, String> {
         let output = std::process::Command::new("yt-dlp")
-            // FIX: Prioritize m4a (AAC) audio which HLS.js plays perfectly
             .arg("-f").arg("bestaudio[ext=m4a]/bestaudio/ba/b") 
             .arg("--no-playlist")
             .arg("-g") 
