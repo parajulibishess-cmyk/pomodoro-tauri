@@ -2,7 +2,14 @@
 
 import { renderSoundsModalHTML, switchTab } from './SoundsUI';
 import { renderLibrary, setupImportLogic } from './Library';
-import { togglePlayPause, setMainVolume, clearAllAudio } from './AudioEngine';
+import { 
+  togglePlayPause, 
+  setMainVolume, 
+  clearAllAudio,
+  playNext,
+  playPrev,
+  toggleRepeat
+} from './AudioEngine';
 
 export function initSoundsUI() {
   const soundsBtn = document.getElementById('top-sounds-btn');
@@ -19,6 +26,9 @@ export function initSoundsUI() {
 
   // 3. Attach core audio controls
   document.getElementById('btn-play-pause')?.addEventListener('click', togglePlayPause);
+  document.getElementById('btn-next')?.addEventListener('click', playNext);
+  document.getElementById('btn-prev')?.addEventListener('click', playPrev);
+  document.getElementById('btn-repeat')?.addEventListener('click', toggleRepeat);
   
   document.getElementById('music-volume')?.addEventListener('input', (e) => {
     setMainVolume(Number((e.target as HTMLInputElement).value) / 100);
