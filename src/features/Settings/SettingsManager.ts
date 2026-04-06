@@ -6,6 +6,7 @@ export interface NookSettings {
   longBreakInterval: number;
   autoStartBreaks: boolean;
   glassOpacity: number;
+  soundsGlassOpacity: number; // NEW
 }
 
 const DEFAULT_SETTINGS: NookSettings = {
@@ -14,10 +15,11 @@ const DEFAULT_SETTINGS: NookSettings = {
   longBreakDuration: 15,
   longBreakInterval: 4,
   autoStartBreaks: false,
-  glassOpacity: 0.6 
+  glassOpacity: 0.6,
+  soundsGlassOpacity: 0.6 // NEW
 };
-export class SettingsManager {
 
+export class SettingsManager {
   settings: NookSettings = { ...DEFAULT_SETTINGS };
 
   constructor() {
@@ -26,6 +28,7 @@ export class SettingsManager {
 
   applyTheme() {
     document.documentElement.style.setProperty('--glass-opacity', this.settings.glassOpacity.toString());
+    document.documentElement.style.setProperty('--sounds-glass-opacity', this.settings.soundsGlassOpacity.toString());
   }
 
   load() {
@@ -38,42 +41,20 @@ export class SettingsManager {
 
   save() {
     localStorage.setItem('nook_settings', JSON.stringify(this.settings));
-    this.applyTheme(); // Apply immediately on save
+    this.applyTheme(); 
     window.dispatchEvent(new Event('settings-changed'));
   }
-  get focusDuration(): number { 
-    return parseInt(localStorage.getItem('focusDuration') || '25', 10); 
-  }
   
-  get shortBreakDuration(): number { 
-    return parseInt(localStorage.getItem('shortBreakDuration') || '5', 10); 
-  }
+  get focusDuration(): number { return parseInt(localStorage.getItem('focusDuration') || '25', 10); }
+  get shortBreakDuration(): number { return parseInt(localStorage.getItem('shortBreakDuration') || '5', 10); }
+  get longBreakDuration(): number { return parseInt(localStorage.getItem('longBreakDuration') || '15', 10); }
+  get longBreakInterval(): number { return parseInt(localStorage.getItem('longBreakInterval') || '4', 10); }
+  get autoStartBreaks(): boolean { return localStorage.getItem('autoStartBreaks') === 'true'; }
+  get deepFocusMode(): boolean { return localStorage.getItem('deepFocusMode') === 'true'; }
+  get todoistToken(): string { return localStorage.getItem('todoist_api_token') || ''; }
   
-  get longBreakDuration(): number { 
-    return parseInt(localStorage.getItem('longBreakDuration') || '15', 10); 
-  }
-  
-  get longBreakInterval(): number { 
-    return parseInt(localStorage.getItem('longBreakInterval') || '4', 10); 
-  }
-  
-  get autoStartBreaks(): boolean { 
-    return localStorage.getItem('autoStartBreaks') === 'true'; 
-  }
-  
-  get deepFocusMode(): boolean { 
-    return localStorage.getItem('deepFocusMode') === 'true'; 
-  }
-  
-  get todoistToken(): string { 
-    return localStorage.getItem('todoist_api_token') || ''; 
-  }
-  
-  set todoistToken(token: string) { 
-    localStorage.setItem('todoist_api_token', token); 
-  }
+  set todoistToken(token: string) { localStorage.setItem('todoist_api_token', token); }
 
-  // Returns duration in seconds for the timer logic
   getDurationForMode(mode: 'focus' | 'short' | 'long'): number {
     switch (mode) {
       case 'focus': return this.focusDuration * 60;

@@ -12,6 +12,7 @@
   --color-blue: #54a0ff;
   --color-red: #ff6b6b;
   --glass-opacity: 0.6;
+  --sounds-glass-opacity: 0.6;
   --glass-border: rgba(255, 255, 255, 0.8);
 }
 
@@ -40,56 +41,32 @@ button:active { transform: translateY(1px); }
   box-shadow: 
     0 4px 6px -1px rgba(89, 74, 66, 0.05), 
     0 10px 15px -3px rgba(89, 74, 66, 0.1),
-    inset 0 0 20px rgba(255, 255, 255, 0.5); /* Inner white glow */
+    inset 0 0 20px rgba(255, 255, 255, 0.5); 
   border-radius: 32px;
 }
 
-/* Custom Scrollbars - Gentle floating pill */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent; /* Track removed */
-}
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(142, 128, 112, 0.3);
   border-radius: 99px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(142, 128, 112, 0.5);
-}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(142, 128, 112, 0.5); }
 
-/* Hide Number Input Spinners completely */
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
-}
-input[type=number] {
-  -moz-appearance: textfield;
-}
-
-/* Pulsing animation for the active task dot */
+/* Pulsing animation */
 @keyframes pulse {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
 }
-.dot-pulse {
-  animation: pulse 2s infinite;
-}
+.dot-pulse { animation: pulse 2s infinite; }
 
-/* Hide number input spin buttons */
 input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type=number] {
-  -moz-appearance: textfield;
-}
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
 
 /* Custom Range Sliders */
 input[type=range].custom-slider {
@@ -97,14 +74,12 @@ input[type=range].custom-slider {
   width: 100%;
   background: transparent;
 }
-input[type=range].custom-slider:focus {
-  outline: none;
-}
+input[type=range].custom-slider:focus { outline: none; }
 input[type=range].custom-slider::-webkit-slider-runnable-track {
   width: 100%;
   height: 6px;
   cursor: pointer;
-  background: #e5e7eb; /* tailwind gray-200 */
+  background: #e5e7eb;
   border-radius: 9999px;
 }
 input[type=range].custom-slider::-webkit-slider-thumb {
@@ -118,30 +93,28 @@ input[type=range].custom-slider::-webkit-slider-thumb {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Modal Scrollbar */
-.modal-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-.modal-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.modal-scroll::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
-  border-radius: 20px;
-}
+.modal-scroll::-webkit-scrollbar { width: 8px; }
+.modal-scroll::-webkit-scrollbar-track { background: transparent; }
+.modal-scroll::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 20px; }
 
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   overflow-y: auto;
 }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
 .dynamic-glass {
   background-color: rgba(255, 255, 255, var(--glass-opacity));
   backdrop-filter: blur(16px);
   border-color: var(--glass-border) !important;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Independent Sounds Glass */
+.sounds-glass {
+  background-color: rgba(255, 255, 255, var(--sounds-glass-opacity));
+  backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, calc(var(--sounds-glass-opacity) + 0.3)) !important;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }

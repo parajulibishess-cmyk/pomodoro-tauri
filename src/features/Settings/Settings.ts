@@ -185,21 +185,20 @@ export function initSettings() {
                 </div>
             </section>
 
-            <section class="bg-white p-5 rounded-3xl shadow-sm">
-              <div class="flex justify-between items-center mb-3">
-                <span class="font-bold text-[#594a42]">Background Overlay Darkening</span>
-                <span id="lbl-opacity" class="font-bold text-[#fdcb58]"></span>
-              </div>
-              <input type="range" id="sl-opacity" min="0" max="0.95" step="0.05" value="${ls.getItem('nook_bg_opacity')}" class="custom-slider w-full" style="--thumb-color: #fdcb58;">
-            </section>
-
             <section class="bg-white p-5 rounded-3xl shadow-sm border border-[#5bc0eb]/20">
               <div class="flex justify-between items-center mb-3">
                 <span class="font-bold text-[#594a42]">UI Glass Transparency</span>
                 <span id="lbl-glass-opacity" class="font-bold text-[#5bc0eb]"></span>
               </div>
               <input type="range" id="sl-glass-opacity" min="0.1" max="1" step="0.05" value="${settingsManager.settings.glassOpacity}" class="custom-slider w-full" style="--thumb-color: #5bc0eb;">
-              <p class="text-xs font-bold text-[#8e8070] mt-3">Controls how transparent the main panels (Timer, Tasks, etc) are.</p>
+            </section>
+
+            <section class="bg-white p-5 rounded-3xl shadow-sm border border-[#fdcb58]/20">
+              <div class="flex justify-between items-center mb-3">
+                <span class="font-bold text-[#594a42]">Sounds Player Transparency</span>
+                <span id="lbl-sounds-glass-opacity" class="font-bold text-[#fdcb58]"></span>
+              </div>
+              <input type="range" id="sl-sounds-glass-opacity" min="0.1" max="1" step="0.05" value="${settingsManager.settings.soundsGlassOpacity}" class="custom-slider w-full" style="--thumb-color: #fdcb58;">
             </section>
 
             <section class="bg-white p-6 rounded-3xl shadow-sm border border-[#594a42]/10">
@@ -411,19 +410,28 @@ export function initSettings() {
     const updateGlassOpacity = () => {
       const val = parseFloat(slGlassOpacity.value);
       lblGlassOpacity.innerText = `${Math.round(val * 100)}%`;
-      
-      // Update background opacity
       document.documentElement.style.setProperty('--glass-opacity', val.toString());
-      
-      // NEW: Make colors/borders bolder when the panel is more opaque
       const borderAlpha = Math.min(1.0, val + 0.3);
       document.documentElement.style.setProperty('--glass-border', `rgba(255, 255, 255, ${borderAlpha})`);
-      
       settingsManager.settings.glassOpacity = val;
       settingsManager.save();
     };
     slGlassOpacity.addEventListener('input', updateGlassOpacity); 
     updateGlassOpacity();
+  }
+
+  const slSoundsGlassOpacity = document.getElementById('sl-sounds-glass-opacity') as HTMLInputElement | null;
+  const lblSoundsGlassOpacity = document.getElementById('lbl-sounds-glass-opacity');
+  if (slSoundsGlassOpacity && lblSoundsGlassOpacity) {
+    const updateSoundsGlassOpacity = () => {
+      const val = parseFloat(slSoundsGlassOpacity.value);
+      lblSoundsGlassOpacity.innerText = `${Math.round(val * 100)}%`;
+      document.documentElement.style.setProperty('--sounds-glass-opacity', val.toString());
+      settingsManager.settings.soundsGlassOpacity = val;
+      settingsManager.save();
+    };
+    slSoundsGlassOpacity.addEventListener('input', updateSoundsGlassOpacity); 
+    updateSoundsGlassOpacity();
   }
 
   // Grid Rendering

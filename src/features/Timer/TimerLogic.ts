@@ -33,11 +33,9 @@ function handleCycleComplete() {
   if (timerState.currentMode === 'focus' && taskStore.focusedTaskId !== null) {
     const task = taskStore.tasks.find(t => t.id === taskStore.focusedTaskId);
     if (task) {
-      // Fix visual bug: increment the pomodoro count on the task
       task.completedPomos += 1;
-      taskStore.save(); // Saves and dispatches 'tasks-updated' to refresh the UI
+      taskStore.save(); 
       
-      // Format the data perfectly for AnalyticsEngine constraints
       sessionTaskData = {
         id: task.id.toString(),
         category: task.category,
@@ -74,24 +72,20 @@ function handleCycleComplete() {
   
   if (timerState.currentMode === 'focus') {
     timerState.pomodoroCount++;
-    // Check if long break interval is reached
     if (timerState.pomodoroCount % settingsManager.longBreakInterval === 0) {
       setMode('long');
     } else {
       setMode('short');
     }
-    // Auto start breaks if setting is enabled
     if (settingsManager.autoStartBreaks) {
       startTimer();
     }
   } else if (timerState.currentMode === 'short') {
-    // Break is over -> Go to Focus
     setMode('focus');
     if (settingsManager.autoStartBreaks) {
       startTimer();
     }
   } else if (timerState.currentMode === 'long') {
-    // End of full cycle -> Reset count to 0, return to focus mode, strictly NO auto start
     timerState.pomodoroCount = 0; 
     setMode('focus');
   }
@@ -109,7 +103,6 @@ function pauseTimerForTransition() {
 export function startTimer() {
   if (timerState.isRunning) return;
   
-  // Initialize analytics variables if this is a fresh start
   if (!sessionStartTime) {
     sessionStartTime = new Date();
     sessionPauses = [];
@@ -124,36 +117,35 @@ export function pauseTimer() {
   if (!timerState.isRunning) return;
   pauseTimerForTransition();
 
-  // No Pausing Rule: Reset on Stop for Focus sessions
-  if (timerState.currentMode === 'focus') {
-    // This is treated as an abandoned session!
-    if (sessionStartTime) {
-      const now = new Date();
-      const elapsedMs = now.getTime() - sessionStartTime.getTime();
-      const elapsedMinutes = Math.floor(elapsedMs / 60000);
+  // Record as an abandoned/paused session for analytics
+  if (sessionStartTime) {
+    const now = new Date();
+    const elapsedMs = now.getTime() - sessionStartTime.getTime();
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
 
-      if (elapsedMinutes > 0) {
-        AnalyticsEngine.recordSession({
-          type: 'focus',
-          durationMinutes: elapsedMinutes,
-          completed: false, // Mark as abandoned
-          startTime: sessionStartTime,
-          endTime: now,
-          pauses: sessionPauses
-        });
-      }
-      
-      sessionStartTime = null;
-      sessionPauses = [];
+    if (elapsedMinutes > 0) {
+      AnalyticsEngine.recordSession({
+        type: mapModeForAnalytics(timerState.currentMode),
+        durationMinutes: elapsedMinutes,
+        completed: false, // Mark as abandoned
+        startTime: sessionStartTime,
+        endTime: now,
+        pauses: sessionPauses
+      });
     }
+    
+    sessionStartTime = null;
+    sessionPauses = [];
+  }
 
-    timerState.timeLeft = settingsManager.getDurationForMode('focus');
+  // Feature: If auto-start breaks is enabled, any pause resets the session completely to the start
+  if (settingsManager.autoStartBreaks) {
+     timerState.pomodoroCount = 0; 
+     timerState.currentMode = 'focus';
+     timerState.timeLeft = settingsManager.getDurationForMode('focus');
   } else {
-    // If pausing is allowed (e.g., during breaks), just record the pause timestamp
-    if (sessionStartTime) {
-      const elapsedMs = new Date().getTime() - sessionStartTime.getTime();
-      sessionPauses.push(Math.floor(elapsedMs / 60000));
-    }
+     // Otherwise just set it to 0 as an abandoned timer
+     timerState.timeLeft = 0;
   }
 
   notifyTimer();
@@ -165,7 +157,6 @@ export function toggleTimer() {
 }
 
 export function setMode(mode: Mode) {
-  // If user switches modes, record the current session as abandoned
   if (sessionStartTime) {
     if (timerState.isRunning) {
       const now = new Date();
@@ -190,7 +181,6 @@ export function setMode(mode: Mode) {
 
   pauseTimerForTransition();
   timerState.currentMode = mode;
-  // Always fetch dynamic duration from SettingsManager upon switching modes
   timerState.timeLeft = settingsManager.getDurationForMode(mode);
   notifyTimer();
 }
@@ -201,12 +191,10 @@ export function finishEarly() {
     let sessionTaskData = undefined;
     let isTaskCompletedSuccess = false;
 
-    // 1. Check if they are finishing early because the task is done
     if (taskStore.focusedTaskId !== null) {
       const task = taskStore.tasks.find(t => t.id === taskStore.focusedTaskId);
       if (task && task.completed) {
          isTaskCompletedSuccess = true;
-         // Increment completed pomos. 1 Successful early finish = 1 Pomodoro
          task.completedPomos += 1; 
          taskStore.save();
 
@@ -216,17 +204,15 @@ export function finishEarly() {
             priority: `P${task.priority}`,
             estimatedPomodoros: task.estimatedPomos,
             actualPomodoros: task.completedPomos,
-            justCompleted: true, // Trigger Estimation Accuracy logic
+            justCompleted: true, 
             dueDate: task.dueDate ? new Date(task.dueDate) : undefined
          };
 
-         // Clean up: Defocus the task now that we've successfully finished early
          taskStore.focusedTaskId = null;
          taskStore.save();
       }
     }
 
-    // 2. Handle analytics logic
     if (sessionStartTime) {
       const now = new Date();
       const elapsedMs = now.getTime() - sessionStartTime.getTime();
@@ -236,7 +222,6 @@ export function finishEarly() {
         AnalyticsEngine.recordSession({
           type: 'focus',
           durationMinutes: elapsedMinutes,
-          // If task is completed, it's a SUCCESS (true), otherwise it's an abandonment (false)
           completed: isTaskCompletedSuccess ? true : false, 
           startTime: sessionStartTime,
           endTime: now,
@@ -248,9 +233,7 @@ export function finishEarly() {
       sessionPauses = [];
     }
 
-    pauseTimerForTransition(); // Stops the timer under the hood
-    
-    // End the entire session completely and return to the Start Screen 
+    pauseTimerForTransition(); 
     timerState.pomodoroCount = 0; 
     timerState.currentMode = 'focus';
     timerState.timeLeft = settingsManager.getDurationForMode('focus');

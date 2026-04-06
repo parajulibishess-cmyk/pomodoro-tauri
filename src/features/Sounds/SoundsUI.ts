@@ -1,6 +1,5 @@
 // src/features/Sounds/SoundsUI.ts
 
-// Notice the slight negative margin on the play icon to visually center the triangle
 export const svgPlay = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 256 256" style="margin-left: -2px;"><path fill="currentColor" d="M232.31,114.34l-128-74.32A15.93,15.93,0,0,0,80,53.91V202.09a15.94,15.94,0,0,0,24.31,13.89l128-74.32a15.89,15.89,0,0,0,0-27.32Z"></path></svg>`;
 export const svgPause = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 256 256"><path fill="currentColor" d="M216,48V208a16,16,0,0,1-16,16H152a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h48A16,16,0,0,1,216,48ZM96,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"></path></svg>`;
 export const svgNext = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 256 256"><path fill="currentColor" d="M208,40V216a8,8,0,0,1-16,0V139.46L76.54,206.56A15.92,15.92,0,0,1,52.2,192.05V63.95A15.92,15.92,0,0,1,76.54,49.44L192,116.54V40a8,8,0,0,1,16,0Z"></path></svg>`;
@@ -68,9 +67,9 @@ export const renderSoundsModalHTML = (root: HTMLElement) => {
     </style>
 
     <div id="sounds-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-[#594a42]/30 backdrop-blur-sm transition-all duration-300 p-4 opacity-0 pointer-events-none">
-      <div id="sounds-inner" class="nook-glass w-full max-w-6xl h-[80vh] min-h-[600px] max-h-[850px] flex flex-col md:flex-row border-[4px] border-white/50 shadow-2xl rounded-[32px] overflow-hidden relative transform scale-95 transition-all duration-300">
+      <div id="sounds-inner" class="nook-glass sounds-glass w-full max-w-[95vw] xl:max-w-[1400px] h-[90vh] min-h-[700px] max-h-[950px] flex flex-col md:flex-row border-[4px] border-white/50 shadow-2xl rounded-[32px] overflow-hidden relative transform scale-95 transition-all duration-300">
         
-        <aside class="w-full md:w-64 bg-white/40 border-b md:border-b-0 md:border-r border-white/50 p-6 flex flex-col gap-6 shrink-0 z-10">
+        <aside class="w-full md:w-64 bg-white/30 border-b md:border-b-0 md:border-r border-white/50 p-6 flex flex-col gap-6 shrink-0 z-10">
           <h2 class="text-2xl font-black text-[#594a42] flex items-center gap-3"><span class="bg-[#5bc0eb]/20 text-[#5bc0eb] p-2 rounded-xl text-lg">🎵</span> Sounds</h2>
           <nav class="flex md:flex-col gap-3 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
             <button class="nav-btn active flex-shrink-0 w-full text-left px-5 py-3 rounded-xl text-lg font-black text-[#594a42] transition-all bg-white shadow-sm border-2 border-white/80" data-target="tab-player">📻 Player</button>
@@ -83,11 +82,11 @@ export const renderSoundsModalHTML = (root: HTMLElement) => {
           </div>
         </aside>
 
-        <main class="flex-1 overflow-hidden bg-white/20 relative p-6">
+        <main class="flex-1 overflow-hidden bg-white/10 relative p-6">
           <div id="tab-player" class="tab-content flex gap-6 h-full overflow-hidden transition-all duration-500">
             
             <div id="player-left-col" class="w-full h-full flex flex-col transition-all duration-500 justify-center items-center">
-              <div id="player-card" class="w-full h-full bg-white/60 rounded-[32px] p-8 border-white/50 shadow-sm flex flex-col relative overflow-hidden transition-all duration-500">
+              <div id="player-card" class="w-full h-full sounds-glass rounded-[32px] p-8 border-white/50 shadow-sm flex flex-col relative overflow-hidden transition-all duration-500">
                 <div id="player-bg-glow" class="absolute inset-0 opacity-[0.15] transition-colors duration-1000 z-0 mix-blend-multiply"></div>
                 
                 <div class="w-full flex items-center justify-end gap-5 mb-4 z-10 relative shrink-0">
@@ -136,7 +135,7 @@ export const renderSoundsModalHTML = (root: HTMLElement) => {
             </div>
 
             <div id="up-next-container" class="w-full lg:w-[40%] flex-col h-full transition-all duration-500 hidden shrink-0">
-              <div class="bg-white/60 rounded-[32px] p-6 border-2 border-white/50 shadow-sm flex flex-col h-full">
+              <div class="sounds-glass rounded-[32px] p-6 border-2 border-white/50 shadow-sm flex flex-col h-full">
                 <h3 class="font-black text-[#594a42] text-lg uppercase tracking-wider border-b-2 border-white/50 pb-3 mb-4">Up Next</h3>
                 <div id="up-next-list" class="flex flex-col gap-3 overflow-y-auto hide-scrollbar flex-1 pr-2"></div>
               </div>
@@ -154,7 +153,7 @@ export const renderSoundsModalHTML = (root: HTMLElement) => {
           </div>
 
           <div id="tab-settings" class="tab-content hidden flex flex-col lg:flex-row gap-6 h-full overflow-hidden pb-2">
-            <div class="w-full lg:w-[65%] bg-white/60 rounded-3xl p-6 border-2 border-white/50 shadow-sm flex flex-col gap-4 overflow-y-auto hide-scrollbar">
+            <div class="w-full lg:w-[65%] sounds-glass rounded-3xl p-6 border-2 border-white/50 shadow-sm flex flex-col gap-4 overflow-y-auto hide-scrollbar">
               <div class="border-b-2 border-white/50 pb-2">
                 <h3 class="font-black text-[#594a42] text-xl flex items-center gap-2"><span class="text-red-500">▶️</span> Import Media</h3>
               </div>
@@ -177,7 +176,7 @@ export const renderSoundsModalHTML = (root: HTMLElement) => {
                 <button id="btn-add-library" class="mt-2 w-full bg-[#78b159] hover:bg-[#6a9e4e] text-white font-black text-sm py-3 rounded-xl shadow-md transition-all active:scale-95">Save to Library</button>
               </div>
             </div>
-            <div class="w-full lg:w-[35%] bg-white/60 rounded-3xl p-5 border-2 border-white/50 shadow-sm flex flex-col h-full gap-4">
+            <div class="w-full lg:w-[35%] dynamic-glass rounded-3xl p-5 border-2 border-white/50 shadow-sm flex flex-col h-full gap-4">
               <div class="border-b-2 border-white/50 pb-2 flex justify-between items-end">
                 <h3 class="font-black text-[#594a42] text-lg flex items-center gap-2">🗄️ Library</h3>
                 <button id="btn-clear-cache" class="bg-[#8e8070] hover:bg-[#ff6b6b] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm active:scale-95">Clear All</button>

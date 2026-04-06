@@ -245,12 +245,11 @@ export class TaskSectionUI {
     const div = document.createElement('li');
     div.className = `group flex items-start gap-4 p-4 rounded-3xl border-2 transition-all duration-300 ${opacityClass}`;
 
-    // Note UI generation
     const noteHtml = isEditingNote
       ? `<textarea class="task-note-input w-full mt-2 p-2.5 rounded-xl bg-white/70 border-2 border-[#78b159]/60 focus:border-[#78b159] text-xs font-medium text-[#594a42] outline-none resize-none shadow-inner transition-all" placeholder="Jot down a quick note... (Press Esc to cancel, click away to save)" rows="2">${task.note || ''}</textarea>`
       : (task.note ? `
           <div class="mt-2 text-[11px] text-[#8e8070] bg-[#f1f2f6]/50 p-2.5 rounded-xl border border-[#e6e2d0] leading-relaxed flex items-start gap-2 shadow-sm">
-             <span class="mt-0.5 opacity-70">📝</span>
+             <span class="mt-0.5 opacity-70">統</span>
              <span class="whitespace-pre-wrap">${task.note}</span>
           </div>` : '');
 
@@ -260,12 +259,14 @@ export class TaskSectionUI {
       </button>
       
       <div class="flex-1 min-w-0 task-content-area cursor-pointer rounded-xl transition-colors hover:bg-[#f1f2f6]/50 p-1 -ml-1 -mt-1" title="Double-click to add or edit note">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-base ${task.completed ? 'line-through text-[#a4b0be]' : (isOverdue ? 'text-[#ff6b6b]' : 'text-[#594a42]')}">
+        <div class="flex items-start sm:items-center gap-2 flex-wrap">
+          <span class="font-bold text-base break-words flex-1 min-w-[120px] ${task.completed ? 'line-through text-[#a4b0be]' : (isOverdue ? 'text-[#ff6b6b]' : 'text-[#594a42]')}">
             ${task.text}
           </span>
-          ${task.priority > 1 ? `<span class="${this.getPriorityColor(task.priority)}">${icons.Flag}</span>` : ''}
-          ${isOverdue && !task.completed ? `<span class="text-[10px] font-black bg-[#ff6b6b] text-white px-2 py-0.5 rounded-full flex items-center gap-1">${icons.AlertCircle} OVERDUE</span>` : ''}
+          <div class="flex items-center gap-2 shrink-0 mt-1 sm:mt-0">
+             ${task.priority > 1 ? `<span class="${this.getPriorityColor(task.priority)}">${icons.Flag}</span>` : ''}
+             ${isOverdue && !task.completed ? `<span class="text-[10px] font-black bg-[#ff6b6b] text-white px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">${icons.AlertCircle} OVERDUE</span>` : ''}
+          </div>
         </div>
         
         <div class="flex items-center gap-2 mt-1.5 flex-wrap">
