@@ -1,10 +1,10 @@
 // src/features/Tasks/TaskStore.ts
-import { TodoistApi } from '@doist/todoist-api-typescript';
+import { invoke } from '@tauri-apps/api/core';
 import { settingsManager } from '../Settings/SettingsManager.ts';
 
 export interface Task {
   id: number;
-  todoistId?: string; // Added to map to Todoist's remote ID
+  todoistId?: string;
   text: string;
   priority: number;
   dueDate: string | null;
@@ -17,6 +17,21 @@ export interface Task {
   note?: string;
 }
 
+interface TodoistTask {
+  id: string;
+  content: string;
+  description: string;
+  checked: boolean;
+  due?: { date: string };
+  priority: number;
+  section_id?: string | null;
+}
+
+interface TodoistSection {
+  id: string;
+  name: string;
+}
+
 class TaskStore {
   tasks: Task[] = [];
   focusedTaskId: number | null = null;
@@ -26,7 +41,6 @@ class TaskStore {
     this.load();
     this.setupTodoistSync();
     
-    // Listen for token changes from Settings to re-initiate sync
     window.addEventListener('settings-changed', () => {
       this.setupTodoistSync();
     });
@@ -44,16 +58,12 @@ class TaskStore {
     window.dispatchEvent(new Event('tasks-updated'));
   }
 
-  // --- Todoist Sync Logic ---
-  
   setupTodoistSync() {
     if (this.syncInterval) clearInterval(this.syncInterval);
     
     const token = settingsManager.todoistToken;
     if (token) {
-      this.syncTodoist(); // Initial pull on load
-      
-      // Auto-sync every 2 minutes (120,000 ms)
+      this.syncTodoist();
       this.syncInterval = window.setInterval(() => this.syncTodoist(), 2 * 60 * 1000);
     }
   }
@@ -63,11 +73,15 @@ class TaskStore {
     if (!token) return;
 
     try {
-      const api = new TodoistApi(token);
+      // Fetch Tasks and Sections concurrently
+      const [todoistTasks, todoistSections] = await Promise.all([
+        invoke<TodoistTask[]>('get_todoist_tasks', { token }),
+        invoke<TodoistSection[]>('get_todoist_sections', { token }).catch(() => [])
+      ]);
       
-      const response = await api.getTasks();
-      const todoistTasks = response.results; 
-      
+      const sectionMap: Record<string, string> = {};
+      todoistSections.forEach(s => sectionMap[s.id] = s.name);
+
       let hasChanges = false;
 
       todoistTasks.forEach(tTask => {
@@ -76,7 +90,15 @@ class TaskStore {
         let category = "General";
         let text = tTask.content;
         
-        // Parse category from the content text
+        // 1. Assign category using the native Todoist Section ID
+        if (tTask.section_id && sectionMap[tTask.section_id]) {
+            const sName = sectionMap[tTask.section_id];
+            if (["Study", "Creative", "Work", "Reading", "General"].includes(sName)) {
+                category = sName;
+            }
+        }
+
+        // 2. Fallback legacy string parsing
         const categories = ["Study", "Creative", "Work", "Reading", "General"];
         for (const cat of categories) {
           if (text.includes(`/${cat}`)) {
@@ -86,10 +108,10 @@ class TaskStore {
           }
         }
 
-        const mappedPriority = 5 - tTask.priority; 
+        const mappedPriority = tTask.priority; // Direct map without the inversion!
+        const isCompleted = tTask.checked; 
 
         if (!exists) {
-          // Add newly found remote tasks to local store using tTask.checked
           this.tasks.push({
             id: Date.now() + Math.floor(Math.random() * 10000), 
             todoistId: tTask.id,
@@ -99,17 +121,16 @@ class TaskStore {
             category: category,
             estimatedPomos: 1, 
             completedPomos: 0,
-            completed: tTask.checked,
-            completedAt: tTask.checked ? Date.now() : null,
+            completed: isCompleted,
+            completedAt: isCompleted ? Date.now() : null,
             createdAt: Date.now(),
             note: tTask.description || undefined
           });
           hasChanges = true;
         } else {
-          // Update existing tasks if changed remotely using tTask.checked
-          if (exists.completed !== tTask.checked) {
-            exists.completed = tTask.checked;
-            exists.completedAt = tTask.checked ? Date.now() : null;
+          if (exists.completed !== isCompleted) {
+            exists.completed = isCompleted;
+            exists.completedAt = isCompleted ? Date.now() : null;
             hasChanges = true;
           }
           if (exists.text !== text) {
@@ -125,8 +146,6 @@ class TaskStore {
     }
   }
 
-  // --- CRUD Methods ---
-
   async addTask(task: Task) {
     this.tasks.push(task);
     this.save(); // Save locally immediately for fast UI feedback
@@ -134,18 +153,16 @@ class TaskStore {
     const token = settingsManager.todoistToken;
     if (token) {
       try {
-        const api = new TodoistApi(token);
-        // Append tag so it categorizes correctly if synced back later
-        const content = task.category !== 'General' ? `${task.text} /${task.category}` : task.text;
-        
-        const tTask = await api.addTask({
-          content: content,
-          dueString: task.dueDate || undefined,
-          priority: 5 - task.priority,
-          description: task.note || ""
+        // Pass parameters to Rust command cleanly, no string hacks!
+        const tTask = await invoke<TodoistTask>('add_todoist_task', {
+          token,
+          content: task.text,
+          dueString: task.dueDate || null,
+          priority: task.priority,
+          description: task.note || "",
+          category: task.category // <-- Send the exact category string ("General", "Study", etc.)
         });
         
-        // Update local task with remote ID
         task.todoistId = tTask.id;
         this.save();
       } catch (err) {
@@ -153,7 +170,7 @@ class TaskStore {
       }
     }
   }
-
+  
   async toggleTask(id: number) {
     const task = this.tasks.find(t => t.id === id);
     if (task) {
@@ -163,11 +180,10 @@ class TaskStore {
 
       if (task.todoistId && settingsManager.todoistToken) {
         try {
-          const api = new TodoistApi(settingsManager.todoistToken);
           if (task.completed) {
-            await api.closeTask(task.todoistId);
+            await invoke('close_todoist_task', { token: settingsManager.todoistToken, id: task.todoistId });
           } else {
-            await api.reopenTask(task.todoistId);
+            await invoke('reopen_todoist_task', { token: settingsManager.todoistToken, id: task.todoistId });
           }
         } catch(err) {
           console.error("Failed to sync toggle status to Todoist", err);
@@ -186,8 +202,7 @@ class TaskStore {
 
     if (task?.todoistId && settingsManager.todoistToken) {
       try {
-        const api = new TodoistApi(settingsManager.todoistToken);
-        await api.deleteTask(task.todoistId);
+        await invoke('delete_todoist_task', { token: settingsManager.todoistToken, id: task.todoistId });
       } catch(err) {
         console.error("Failed to sync deletion to Todoist", err);
       }
@@ -202,8 +217,11 @@ class TaskStore {
 
       if (task.todoistId && settingsManager.todoistToken) {
         try {
-          const api = new TodoistApi(settingsManager.todoistToken);
-          await api.updateTask(task.todoistId, { description: note });
+          await invoke('update_todoist_task', { 
+            token: settingsManager.todoistToken, 
+            id: task.todoistId, 
+            description: note 
+          });
         } catch(err) {
           console.error("Failed to sync note to Todoist", err);
         }
@@ -213,9 +231,7 @@ class TaskStore {
 
   getSortedTasks() {
     return [...this.tasks].sort((a, b) => {
-      // Completed tasks go to the bottom
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      // Then sort by priority (1 is highest, 4 is lowest)
       return a.priority - b.priority;
     });
   }
