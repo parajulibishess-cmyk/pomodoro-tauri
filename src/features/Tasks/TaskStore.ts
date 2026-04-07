@@ -108,7 +108,7 @@ class TaskStore {
           }
         }
 
-        const mappedPriority = tTask.priority; // Direct map without the inversion!
+        const mappedPriority = tTask.priority; 
         const isCompleted = tTask.checked; 
 
         if (!exists) {
@@ -128,6 +128,7 @@ class TaskStore {
           });
           hasChanges = true;
         } else {
+          // --- FIX 1: Two-Way Sync for all properties ---
           if (exists.completed !== isCompleted) {
             exists.completed = isCompleted;
             exists.completedAt = isCompleted ? Date.now() : null;
@@ -135,6 +136,39 @@ class TaskStore {
           }
           if (exists.text !== text) {
             exists.text = text;
+            hasChanges = true;
+          }
+          if (exists.category !== category) {
+            exists.category = category;
+            hasChanges = true;
+          }
+          if (exists.priority !== mappedPriority) {
+            exists.priority = mappedPriority;
+            hasChanges = true;
+          }
+          const incomingDueDate = tTask.due?.date || null;
+          if (exists.dueDate !== incomingDueDate) {
+            exists.dueDate = incomingDueDate;
+            hasChanges = true;
+          }
+          const incomingNote = tTask.description || undefined;
+          if (exists.note !== incomingNote) {
+            exists.note = incomingNote;
+            hasChanges = true;
+          }
+        }
+      });
+
+      // --- FIX 2: Detect tasks completed remotely in Todoist ---
+      // If a task exists locally with a todoistId, is NOT completed, but is 
+      // missing from the active todoistTasks list, it means it was checked off in Todoist.
+      const incomingTodoistIds = new Set(todoistTasks.map(t => t.id));
+      
+      this.tasks.forEach(localTask => {
+        if (localTask.todoistId && !localTask.completed) {
+          if (!incomingTodoistIds.has(localTask.todoistId)) {
+            localTask.completed = true;
+            localTask.completedAt = Date.now();
             hasChanges = true;
           }
         }
@@ -153,14 +187,13 @@ class TaskStore {
     const token = settingsManager.todoistToken;
     if (token) {
       try {
-        // Pass parameters to Rust command cleanly, no string hacks!
         const tTask = await invoke<TodoistTask>('add_todoist_task', {
           token,
           content: task.text,
           dueString: task.dueDate || null,
           priority: task.priority,
           description: task.note || "",
-          category: task.category // <-- Send the exact category string ("General", "Study", etc.)
+          category: task.category
         });
         
         task.todoistId = tTask.id;
@@ -193,20 +226,14 @@ class TaskStore {
   }
 
   async deleteTask(id: number) {
+    // --- FIX 3: Local-only deletion ---
+    // The invoke('delete_todoist_task') has been removed so Todoist/Calendar records are preserved.
     const task = this.tasks.find(t => t.id === id);
     this.tasks = this.tasks.filter(t => t.id !== id);
     if (this.focusedTaskId === id) {
       this.focusedTaskId = null;
     }
     this.save();
-
-    if (task?.todoistId && settingsManager.todoistToken) {
-      try {
-        await invoke('delete_todoist_task', { token: settingsManager.todoistToken, id: task.todoistId });
-      } catch(err) {
-        console.error("Failed to sync deletion to Todoist", err);
-      }
-    }
   }
   
   async updateTaskNote(id: number, note: string) {
@@ -231,8 +258,27 @@ class TaskStore {
 
   getSortedTasks() {
     return [...this.tasks].sort((a, b) => {
+      // 1. Completed tasks always go to the very bottom
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      return a.priority - b.priority;
+
+      // Helper to convert "YYYY-MM-DD" to a timestamp. 
+      // Tasks with no due date get pushed to the end (Infinity).
+      const getTime = (dateStr: string | null) => {
+        if (!dateStr) return Infinity;
+        return new Date(dateStr + 'T00:00').getTime();
+      };
+
+      const timeA = getTime(a.dueDate);
+      const timeB = getTime(b.dueDate);
+
+      // 2. Sort by date ascending (Overdue first -> Today -> Tomorrow -> ...)
+      if (timeA !== timeB) {
+        return timeA - timeB; 
+      }
+
+      // 3. If the dates are the exact same (or both have no due date), 
+      // sort by Priority descending (Todoist Priority 4 is Highest, 1 is Lowest)
+      return b.priority - a.priority;
     });
   }
 }
