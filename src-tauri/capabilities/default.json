@@ -8,6 +8,8 @@
   "permissions": [
     "core:default",
     "http:default",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
     {
       "identifier": "http:default",
       "allow": [

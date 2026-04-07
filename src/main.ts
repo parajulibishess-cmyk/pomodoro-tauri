@@ -4,6 +4,7 @@ import { TaskSectionUI } from './features/Tasks/Tasks.ts';
 import { initSettings } from './features/Settings/Settings.ts';
 import { initAnalytics } from './features/Analytics/Analytics.ts';
 import { initSoundsUI } from './features/Sounds/Sounds.ts'; 
+import { initFullscreenToggle } from './features/Window/Fullscreen.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
   initTimerUI();
@@ -11,4 +12,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettings();
   initAnalytics();
   initSoundsUI();
+  initFullscreenToggle('fullscreen-btn');
 });
